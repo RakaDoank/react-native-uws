@@ -1,0 +1,4 @@
+export enum ListenOptions {
+	LIBUS_LISTEN_DEFAULT = 0,
+	LIBUS_LISTEN_EXCLUSIVE_PORT = 1,
+}

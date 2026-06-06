@@ -1,0 +1,10 @@
+{
+	"name": "package-builder",
+	"private": true,
+	"version": "0.0.1",
+	"bin": "./scripts/bin.mjs",
+	"devDependencies": {
+		"react-native-builder-bob": "0.41.0",
+		"semver": "7.8.0"
+	}
+}

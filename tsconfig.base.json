@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+		"allowUnreachableCode": false,
+		"allowUnusedLabels": false,
+		"composite": true,
+		"esModuleInterop": true,
+		"isolatedModules": true,
+		"noEmit": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitAny": true,
+		"noImplicitReturns": true,
+		"noImplicitUseStrict": false,
+		"noImplicitOverride": true,
+		"noStrictGenericChecks": false,
+		"noUncheckedIndexedAccess": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"resolveJsonModule": true,
+		"resolvePackageJsonImports": false,
+		"skipLibCheck": true,
+		"strict": true,
+		"verbatimModuleSyntax": true,
+	}
+}

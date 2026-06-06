@@ -1,0 +1,25 @@
+allowBuilds:
+  '@carbon/icon-helpers': false
+  '@carbon/icons': false
+  'msgpackr-extract': false
+  'unrs-resolver': false
+
+catalog:
+  'react': 19.2.3
+  'react-dom': 19.2.3
+  'react-native-builder-bob': 0.41.0
+
+engineStrict: true
+
+minimumReleaseAgeExclude:
+  - babel-preset-expo@56.0.14
+  - expo-build-properties@56.0.16
+  - expo-image-picker@56.0.15
+  - expo@56.0.8
+
+nodeLinker: hoisted
+
+packages:
+  - 'example'
+  - 'package'
+  - 'package-builder'

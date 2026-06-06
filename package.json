@@ -1,0 +1,37 @@
+{
+	"name": "react-native-uws",
+	"private": true,
+	"version": "0.0.0",
+	"description": "Embed a HTTP server to your React Native app",
+	"scripts": {
+		"code-check": "npm run type-check && npm run lint",
+		"lint": "eslint .",
+		"package-builder": "package-builder",
+		"type-check": "tsc --build"	
+	},
+	"devDependencies": {
+		"@react-native-community/cli": "20.1.3",
+		"@eslint/compat": "2.1.0",
+		"@react-native/eslint-config": "0.83.6",
+		"@stylistic/eslint-plugin": "5.10.0",
+		"@types/color": "4.2.1",
+		"@types/node": "^24",
+		"@types/react": "19.2.14",
+		"@types/react-dom": "19.2.3",
+		"@types/react-native-web": "0.19.2",
+		"eslint": "9.39.4",
+		"eslint-import-resolver-typescript": "4.4.4",
+		"eslint-plugin-import-x": "4.16.2",
+		"eslint-plugin-react": "7.37.5",
+		"eslint-plugin-react-hooks": "7.1.1",
+		"eslint-plugin-react-native": "^5.0.0",
+		"globals": "17.6.0",
+		"package-builder": "workspace:*",
+		"typescript": "6.0.3",
+		"typescript-eslint": "8.59.2"
+	},
+	"engines": {
+		"node": ">=24",
+		"pnpm": ">=11"
+	}
+}

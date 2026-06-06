@@ -1,0 +1,52 @@
+{
+	"name": "react-native-uws",
+	"version": "0.0.1-beta.5",
+	"description": "Embed uWebSockets server in React Native app",
+	"license": "MIT",
+	"author": "RakaDoank <rakaaudira@gmail.com> (https://github.com/RakaDoank)",
+	"homepage": "https://github.com/RakaDoank/react-native-uws",
+	"repository": "https://github.com/RakaDoank/react-native-uws",
+	"keywords": [
+		"react-native-uws",
+		"uwebsockets",
+		"uwebsockets.js",
+		"server",
+		"http",
+		"websocket"
+	],
+	"files": [
+		"android",
+		"apple",
+		"cpp",
+		"lib",
+		"src",
+		"*.podspec",
+		"!android/build",
+		"!android/gradle",
+		"!android/gradlew",
+		"!android/gradlew.bat",
+		"!android/local.properties",
+		"!ios/build"
+	],
+	"exports": {
+		".": {
+			"import": {
+				"types": "./lib/typescript/module/index.d.ts",
+				"default": "./lib/module/index.js"
+			},
+			"require": {
+				"types": "./lib/typescript/commonjs/index.d.ts",
+				"default": "./lib/commonjs/index.js"
+			}
+		},
+		"./package.json": "./package.json"
+	},
+	"codegenConfig": {
+		"name": "ReactNativeUwsSpecs",
+		"type": "modules",
+		"jsSrcsDir": "./src/_internal/native-modules",
+		"android": {
+			"javaPackageName": "id.sufeni.oss.reactnativeuws"
+		}
+	}
+}

@@ -1,0 +1,37 @@
+{
+	"name": "example",
+	"private": true,
+	"main": "expo-router/entry",
+	"scripts": {
+		"android": "expo run:android",
+		"build:apk": "cd android && ./gradlew assembleRelease",
+		"ios": "expo run:ios",
+		"prebuild": "expo prebuild",
+		"prebuild:clean": "expo prebuild --clean",
+    	"start": "expo start",
+		"web": "npm run start -- --web"
+	},
+	"dependencies": {
+		"@audira/carbon-react-native": "1.0.8",
+		"@audira/carbon-react-native-elements": "1.0.0",
+		"@carbon/icons": "11.80.0",
+		"expo": "56.0.8",
+		"expo-build-properties": "56.0.16",
+   		"expo-image": "56.0.9",
+		"expo-image-picker": "56.0.15",
+    	"expo-router": "56.2.8",
+		"expo-splash-screen": "56.0.10",
+		"expo-status-bar": "56.0.4",
+    	"expo-system-ui": "56.0.5",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"react-native": "0.85.3",
+		"react-native-quick-base64": "3.0.0",
+		"react-native-reanimated": "4.3.1",
+		"react-native-safe-area-context": "5.7.0",
+		"react-native-screens": "4.25.2",
+		"react-native-svg": "15.15.4",
+		"react-native-web": "0.21.2",
+		"react-native-worklets": "0.8.3"
+	}
+}
