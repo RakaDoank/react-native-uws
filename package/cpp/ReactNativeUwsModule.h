@@ -1,8 +1,7 @@
 #pragma once
 
 #include <ReactNativeUwsSpecsJSI.h>
-#include <memory>
-#include "http/Server.h"
+#include "app/TemplatedAppObject.h"
 
 namespace facebook::react {
 
@@ -11,51 +10,21 @@ class ReactNativeUwsModule : public NativeReactNativeUwsCxxSpec<ReactNativeUwsMo
 public:
   ReactNativeUwsModule(std::shared_ptr<CallInvoker> jsInvoker);
 
-  void App(facebook::jsi::Runtime &rt,
-           std::optional<facebook::jsi::Object> appOptions);
+  react_native_uws::TemplatedAppObject App(facebook::jsi::Runtime &rt,
+                                           std::optional<facebook::jsi::Object> appOptions);
 
-  void SSLApp(facebook::jsi::Runtime &rt,
-              facebook::jsi::Object appOptions);
+  facebook::jsi::Object SSLApp(facebook::jsi::Runtime &rt,
+                              facebook::jsi::Object appOptions);
 
-  void us_listen_socket_close(facebook::jsi::Runtime &rt)
+  facebook::jsi::Object getParts(facebook::jsi::Runtime &rt,
+                facebook::jsi::Object body,
+                facebook::jsi::Object contentType);
 
-  void httpCreateServer(facebook::jsi::Runtime &rt,
-                        facebook::jsi::String serverID,
-                        facebook::jsi::Object options);
+  void us_listen_socket_close(facebook::jsi::Runtime &rt,
+                                              facebook::jsi::Object listenSocket);
 
-  void httpServerListen(facebook::jsi::Runtime &rt,
-                        facebook::jsi::String serverID,
-                        double port,
-                        facebook::jsi::Function onListener,
-                        facebook::jsi::Function onListenerFailure);
-
-  void httpServerClose(facebook::jsi::Runtime &rt,
-                       facebook::jsi::String serverID);
-
-  void httpServerRouteAny(facebook::jsi::Runtime &rt,
-                          facebook::jsi::String serverID,
-                          facebook::jsi::String path,
-                          facebook::jsi::Function callback);
-
-  void httpServerRouteGet(facebook::jsi::Runtime &rt,
-                          facebook::jsi::String serverID,
-                          facebook::jsi::String path,
-                          facebook::jsi::Function callback);
-
-  void httpServerRoutePost(facebook::jsi::Runtime &rt,
-                           facebook::jsi::String serverID,
-                           facebook::jsi::String path,
-                           facebook::jsi::Function callback);
-
-  void httpServerRoutePut(facebook::jsi::Runtime &rt,
-                          facebook::jsi::String serverID,
-                          facebook::jsi::String path,
-                          facebook::jsi::Function callback);
-
-  void httpServerRouteDelete(facebook::jsi::Runtime &rt,
-                             facebook::jsi::String serverID,
-                             facebook::jsi::String path,
-                             facebook::jsi::Function callback);
+  void us_socket_local_port(facebook::jsi::Runtime &rt,
+                                            facebook::jsi::Object socket);
 
 };
 

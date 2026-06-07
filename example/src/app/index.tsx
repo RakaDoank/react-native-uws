@@ -11,13 +11,27 @@ import {
 	Text,
 } from "@audira/carbon-react-native"
 
-// import * as uws from "react-native-uws"
+import * as uws from "react-native-uws"
 
 export default function Page() {
 
 	CarbonStyleSheet.use()
 
 	useEffect(() => {
+		const app = uws.App()
+
+		console.log("APP", app)
+
+		app.get("/hola", () => {
+
+		})
+
+		app.get("/testing", () => {
+
+		})
+
+		console.log("APP2", app)
+
 		// const server = new Echo.Http.Server()
 
 		// server.route("/api/route", (request) => {

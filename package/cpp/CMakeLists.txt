@@ -31,6 +31,7 @@ file(
 	${CMAKE_CURRENT_SOURCE_DIR}
 	"./*.cpp"
 )
+
 # It's useful later to call cpp to Java/Kotlin
 # file(GLOB_RECURSE LIB_ANDROID_SRCS RELATIVE ${CMAKE_SOURCE_DIR} "src/main/cpp/*.cpp")
 file(
@@ -63,14 +64,21 @@ target_include_directories(
 	${PROJECT_NAME}
 	PUBLIC
 	"."
-	"./http"
 	${LIB_ANDROID_SRCS}
 	${LIB_ANDROID_GENERATED_JNI_DIR}
 	"${LIB_ANDROID_GENERATED_JNI_DIR}/react/renderer/components/${LIB_CODEGEN_SPEC_NAME}"
 )
 
+# Add `app` headers
+# target_include_directories(
+# 	${PROJECT_NAME}
+# 	INTERFACE
+# 	"./app"
+# )
+
 # +++++ uWebSockets C++ library +++++
 # Thanks to https://github.com/tony-go/cmake-uwebsockets/blob/main/CMakeLists.txt
+
 FetchContent_Declare(
 	rnuws_usockets_content
 	GIT_REPOSITORY https://github.com/uNetworking/uSockets
@@ -137,7 +145,10 @@ add_library(uWebSockets INTERFACE)
 target_include_directories(uWebSockets INTERFACE ${UWEBSOCKETS_WRAPPER_DIR})
 target_link_libraries(uWebSockets INTERFACE uSockets ${ZLIB_LIBRARIES})
 target_compile_options(uWebSockets INTERFACE -Wno-deprecated-declarations)
+
 # ----- uWebSockets C++ library -----
+
+add_subdirectory(app)
 
 # Link Libraries
 target_link_libraries(
@@ -149,4 +160,5 @@ target_link_libraries(
 	uWebSockets
 	android
 	log
+	react_native_uws__app
 )

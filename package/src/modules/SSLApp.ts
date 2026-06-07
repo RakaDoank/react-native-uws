@@ -1,4 +1,4 @@
-import NativeReactNativeEcho from "../_internal/native-modules/NativeReactNativeUws"
+import NativeReactNativeUws from "../_internal/native-modules/NativeReactNativeUws"
 
 import type {
 	AppOptions,
@@ -8,6 +8,6 @@ import type {
 /**
  * Constructs an SSL app. See `App`.
  */
-export function SSLApp(options?: AppOptions) : TemplatedApp {
-	// TODO
+export function SSLApp(options: AppOptions) : TemplatedApp {
+	return NativeReactNativeUws.SSLApp(options) as unknown as TemplatedApp
 }

@@ -6,7 +6,7 @@
 #include <vector>
 #include "uWebSockets/HttpResponse.h"
 
-namespace react_native_echo {
+namespace react_native_uws {
 
 // +++++ PRIVATES +++++
 facebook::jsi::Object RequestHostObject::headers(facebook::jsi::Runtime &rt) {

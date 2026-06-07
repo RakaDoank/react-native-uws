@@ -6,58 +6,58 @@ import type {
  * An HttpRequest is stack allocated and only accessible during the callback invocation.
  */
 export interface HttpRequest {
-    /**
+	/**
 	 * Returns the lowercased header value or empty string.
 	 */
-    getHeader(
+	getHeader(
 		lowerCaseKey: RecognizedString,
 	) : string,
 
-    /**
+	/**
 	 * Returns the parsed parameter at index. Corresponds to route. Can also take the name of the parameter.
 	 */
-    getParameter(
+	getParameter(
 		index: number | RecognizedString,
 	) : string | undefined,
 
-    /**
+	/**
 	 * Returns the URL including initial /slash
 	 */
-    getUrl() : string,
+	getUrl() : string,
 
-    /**
+	/**
 	 * Returns the lowercased HTTP method, useful for "any" routes.
 	 */
-    getMethod() : string,
+	getMethod() : string,
 
-    /**
+	/**
 	 * Returns the HTTP method as-is.
 	 */
-    getCaseSensitiveMethod() : string,
+	getCaseSensitiveMethod() : string,
 
-    /**
+	/**
 	 * Returns the raw querystring (the part of URL after ? sign) or empty string.
 	 */
-    getQuery() : string,
+	getQuery() : string,
 
-    /**
+	/**
 	 * Returns a decoded query parameter value or undefined.
 	 */
-    getQuery(
+	getQuery(
 		key: string,
 	) : string | undefined,
 
-    /**
+	/**
 	 * Loops over all headers.
 	 */
-    forEach(
+	forEach(
 		cb: (key: string, value: string) => void,
 	) : void,
 
-    /**
+	/**
 	 * Setting yield to true is to say that this route handler did not handle the route, causing the router to continue looking for a matching route handler, or fail.
 	 */
-    setYield(
+	setYield(
 		_yield: boolean,
 	) : HttpRequest,
 }

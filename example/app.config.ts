@@ -14,9 +14,9 @@ const
 
 export default {
 
-	name: "Echo Example",
-	slug: "echo",
-	scheme: "echo",
+	name: "UWS Example",
+	slug: "uws",
+	scheme: "uws",
 	version: versionName,
 
 	orientation: "default",
