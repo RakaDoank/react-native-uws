@@ -18,8 +18,9 @@ public:
     this->appRunner = std::make_shared<AppRunner>();
   }
 
-  TemplatedAppObject getTemplatedAppObject(facebook::jsi::Runtime &rt) {
-    return {this->appRunner, rt};
+  TemplatedAppObject getTemplatedAppObject(facebook::jsi::Runtime &rt,
+                                           std::shared_ptr<facebook::react::CallInvoker> &jsInvoker) {
+    return {this->appRunner, rt, jsInvoker};
   }
 
 };

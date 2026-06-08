@@ -3,7 +3,7 @@
 	"private": true,
 	"main": "expo-router/entry",
 	"scripts": {
-		"android": "expo run:android",
+		"android": "expo run:android --variant debugOptimized",
 		"build:apk": "cd android && ./gradlew assembleRelease",
 		"ios": "expo run:ios",
 		"prebuild": "expo prebuild",

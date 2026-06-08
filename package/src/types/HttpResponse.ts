@@ -11,6 +11,86 @@ import type {
  */
 export interface HttpResponse {
 	/**
+	 * Immediately force closes the connection. Any onAborted callback will run.
+	 */
+	close() : HttpResponse,
+
+	/**
+	 * Corking a response is a performance improvement in both CPU and network, as you ready the IO system for writing multiple chunks at once.
+	 * 
+     * By default, you're corked in the immediately executing top portion of the route handler. In all other cases, such as when returning from
+     * await, or when being called back from an async database request or anything that isn't directly executing in the route handler, you'll want
+     * to cork before calling writeStatus, writeHeader or just write. Corking takes a callback in which you execute the writeHeader, writeStatus and
+     * such calls, in one atomic IO operation. This is important, not only for TCP but definitely for TLS where each write would otherwise result
+     * in one TLS block being sent off, each with one send syscall.
+     *
+     * Example usage:
+     *
+     * ```
+     * res.cork(() => {
+     *   res.writeStatus("200 OK").writeHeader("Some", "Value").write("Hello world!"),
+     * }),
+     * ```
+	 */
+	cork(
+		cb: () => void,
+	) : HttpResponse,
+
+	/**
+	 * `collectBody` is a helper function making optimal use of the new onDataV2.
+     * It allows efficient and easy collection of smallish HTTP request body data into RAM.
+     * It accumulates all data chunks and calls handler with the complete body as an ArrayBuffer once all data has arrived.
+     * If the total body size exceeds maxSize bytes, handler is called with null instead.
+	 */
+	collectBody(
+		maxSize: number,
+		handler: (fullBody: ArrayBuffer | null) => void,
+	) : HttpResponse,
+
+	/**
+	 * Ends this response by copying the contents of body.
+	 */
+	end(
+		body?: RecognizedString,
+		closeConnection?: boolean,
+	) : HttpResponse,
+
+	/**
+	 * Returns the remote IP address in binary format (4 or 16 bytes).
+	 */
+	getRemoteAddress() : ArrayBuffer,
+
+	/**
+	 * Returns the remote IP address as text.
+	 */
+	getRemoteAddressAsText() : ArrayBuffer,
+
+	/**
+	 * Returns the remote port number.
+	 */
+	getRemotePort() : number,
+
+	/**
+	 * Returns the remote IP address in binary format (4 or 16 bytes), as reported by the PROXY Protocol v2 compatible proxy.
+	 */
+	getProxiedRemoteAddress() : ArrayBuffer,
+
+	/**
+	 * Returns the remote IP address as text, as reported by the PROXY Protocol v2 compatible proxy.
+	 */
+	getProxiedRemoteAddressAsText() : ArrayBuffer,
+
+	/**
+	 * Returns the remote port number, as reported by the PROXY Protocol v2 compatible proxy.
+	 */
+	getProxiedRemotePort() : number,
+
+	/**
+	 * Returns the global byte write offset for this response. Use with onWritable.
+	 */
+	getWriteOffset() : number,
+
+	/**
 	 * Writes the HTTP status message such as "200 OK".
      * This has to be called first in any response, otherwise
      * it will be called automatically with "200 OK".
@@ -46,46 +126,11 @@ export interface HttpResponse {
 	) : boolean,
 
 	/**
-	 * Ends this response by copying the contents of body.
-	 */
-	end(
-		body?: RecognizedString,
-		closeConnection?: boolean,
-	) : HttpResponse,
-
-	/**
 	 * Ends this response without a body.
 	 */
 	endWithoutBody(
 		reportedContentLength?: number,
 		closeConnection?: boolean,
-	) : HttpResponse,
-
-	/**
-	 * Ends this response, or tries to, by streaming appropriately sized chunks of body. Use in conjunction with onWritable. Returns tuple [ok, hasResponded].
-	 */
-	tryEnd(
-		fullBodyOrChunk: RecognizedString,
-		totalSize: number,
-	) : [boolean, boolean],
-
-	/**
-	 * Immediately force closes the connection. Any onAborted callback will run.
-	 */
-	close() : HttpResponse,
-
-	/**
-	 * Returns the global byte write offset for this response. Use with onWritable.
-	 */
-	getWriteOffset() : number,
-
-	/**
-	 * Registers a handler for writable events. Continue failed write attempts in here.
-     * You MUST return true for success, false for failure.
-     * Writing nothing is always success, so by default you must return true.
-	 */
-	onWritable(
-		handler: (offset: number) => boolean,
 	) : HttpResponse,
 
 	/**
@@ -111,28 +156,6 @@ export interface HttpResponse {
 	) : HttpResponse,
 
 	/**
-	 * Pause HTTP request body streaming (throttle).
-     * Some buffered data may still be sent to onData.
-	 */
-	pause() : void,
-
-	/**
-	 * Resume HTTP request body streaming (unthrottle).
-	 */
-	resume() : void,
-
-	/**
-	 * `collectBody` is a helper function making optimal use of the new onDataV2.
-     * It allows efficient and easy collection of smallish HTTP request body data into RAM.
-     * It accumulates all data chunks and calls handler with the complete body as an ArrayBuffer once all data has arrived.
-     * If the total body size exceeds maxSize bytes, handler is called with null instead.
-	 */
-	collectBody(
-		maxSize: number,
-		handler: (fullBody: ArrayBuffer | null) => void,
-	) : HttpResponse,
-
-	/**
 	 * Handler for reading HTTP request body data. V2.
 	 * 
      * Must be attached before performing any asynchronous operation, otherwise data may be lost.
@@ -145,55 +168,32 @@ export interface HttpResponse {
 	) : HttpResponse,
 
 	/**
-	 * Returns the remote IP address in binary format (4 or 16 bytes).
+	 * Registers a handler for writable events. Continue failed write attempts in here.
+     * You MUST return true for success, false for failure.
+     * Writing nothing is always success, so by default you must return true.
 	 */
-	getRemoteAddress() : ArrayBuffer,
-
-	/**
-	 * Returns the remote IP address as text.
-	 */
-	getRemoteAddressAsText() : ArrayBuffer,
-
-	/**
-	 * Returns the remote port number.
-	 */
-	getRemotePort() : number,
-
-	/**
-	 * Returns the remote IP address in binary format (4 or 16 bytes), as reported by the PROXY Protocol v2 compatible proxy.
-	 */
-	getProxiedRemoteAddress() : ArrayBuffer,
-
-	/**
-	 * Returns the remote IP address as text, as reported by the PROXY Protocol v2 compatible proxy.
-	 */
-	getProxiedRemoteAddressAsText() : ArrayBuffer,
-
-	/**
-	 * Returns the remote port number, as reported by the PROXY Protocol v2 compatible proxy.
-	 */
-	getProxiedRemotePort() : number,
-
-	/**
-	 * Corking a response is a performance improvement in both CPU and network, as you ready the IO system for writing multiple chunks at once.
-	 * 
-     * By default, you're corked in the immediately executing top portion of the route handler. In all other cases, such as when returning from
-     * await, or when being called back from an async database request or anything that isn't directly executing in the route handler, you'll want
-     * to cork before calling writeStatus, writeHeader or just write. Corking takes a callback in which you execute the writeHeader, writeStatus and
-     * such calls, in one atomic IO operation. This is important, not only for TCP but definitely for TLS where each write would otherwise result
-     * in one TLS block being sent off, each with one send syscall.
-     *
-     * Example usage:
-     *
-     * ```
-     * res.cork(() => {
-     *   res.writeStatus("200 OK").writeHeader("Some", "Value").write("Hello world!"),
-     * }),
-     * ```
-	 */
-	cork(
-		cb: () => void,
+	onWritable(
+		handler: (offset: number) => boolean,
 	) : HttpResponse,
+
+	/**
+	 * Pause HTTP request body streaming (throttle).
+     * Some buffered data may still be sent to onData.
+	 */
+	pause() : void,
+
+	/**
+	 * Resume HTTP request body streaming (unthrottle).
+	 */
+	resume() : void,
+
+	/**
+	 * Ends this response, or tries to, by streaming appropriately sized chunks of body. Use in conjunction with onWritable. Returns tuple [ok, hasResponded].
+	 */
+	tryEnd(
+		fullBodyOrChunk: RecognizedString,
+		totalSize: number,
+	) : [boolean, boolean],
 
 	/**
 	 * Upgrades a HttpResponse to a WebSocket. See UpgradeAsync, UpgradeSync example files.

@@ -20,17 +20,36 @@ export default function Page() {
 	useEffect(() => {
 		const app = uws.App()
 
-		console.log("APP", app)
+		app.get("/hola/:name", (res, req) => {
+			req.forEach((key, val) => {
+				console.log("header", key, val)
+			})
 
-		app.get("/hola", () => {
+			console.log("getCaseSensitiveMethod", req.getCaseSensitiveMethod())
 
+			// why it's empty
+			console.log("getHeader", req.getHeader("connection"))
+
+			console.log("getMethod", req.getMethod())
+
+			// console.log("getParameter", req.getParameter("name"))
+
+			// This is only work in debugOptimized and release/production build
+			// I don't know why this doesn't work on the basic debug build
+			// console.log("getQuery", req.getQuery("foo"))
+
+			console.log("getUrl", req.getUrl(), req.getUrl().length)
+
+			res.end("hello world")
 		})
 
-		app.get("/testing", () => {
-
+		app.get("/testing", (res) => {
+			res.end("testing")
 		})
 
-		console.log("APP2", app)
+		app.listen(5000, () => {
+			// testing
+		})
 
 		// const server = new Echo.Http.Server()
 
