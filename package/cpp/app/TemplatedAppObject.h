@@ -1,7 +1,7 @@
 #pragma once
 
-#include <algorithm>
 #include <ReactCommon/CallInvoker.h>
+#include <algorithm>
 #include <jsi/jsi.h>
 #include <utility>
 #include <uWebSockets/App.h>
@@ -34,9 +34,18 @@ private:
     if(appRunner) {
       auto pattern = arguments[0].asString(rt).utf8(rt);
       auto callback = arguments[1].asObject(rt).asFunction(rt);
-      auto asyncCallback = facebook::react::AsyncCallback(rt, std::move(callback), jsInvoker);
 
-      std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [asyncCallback_ = std::move(asyncCallback)](auto *res, auto *req) {
+      /// We can't make a sync call from arbitrary thread
+      /// where the uWebSockets runner lives
+
+//      std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [&rt, syncCallback = std::make_shared<facebook::react::SyncCallback<void (facebook::jsi::Value, facebook::jsi::Value)>>(rt, std::move(callback), jsInvoker)](auto *res, auto *req) {
+//        auto httpResponseObject = std::make_shared<HttpResponseObject>(rt, res);
+//        auto httpRequestObject = std::make_shared<HttpRequestObject>(rt, req);
+//
+//        syncCallback->call(httpResponseObject.get(), httpRequestObject.get());
+//      };
+
+      std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [asyncCallback = facebook::react::AsyncCallback(rt, std::move(callback), jsInvoker)](auto *res, auto *req) {
         auto aborted = std::make_shared<bool>(false);
         /**
          * I don't know why without this,
@@ -47,14 +56,16 @@ private:
           *aborted = true;
         });
 
-        asyncCallback_.call([&res, &req](facebook::jsi::Runtime &rt_1, facebook::jsi::Function &cb) {
-          auto httpResponseObject = std::make_shared<HttpResponseObject>(rt_1, res);
-          auto httpRequestObject = std::make_shared<HttpRequestObject>(rt_1, req);
+        if(!*aborted) {
+          asyncCallback.call([&res, &req](facebook::jsi::Runtime &rt_1, facebook::jsi::Function &cb) {
+            auto httpResponseObject = std::make_shared<HttpResponseObject>(rt_1, res);
+            auto httpRequestObject = std::make_shared<HttpRequestObject>(rt_1, req);
 
-          cb.call(rt_1,
-                  *httpResponseObject,
-                  *httpRequestObject);
-        });
+            cb.call(rt_1,
+                    *httpResponseObject,
+                    *httpRequestObject);
+          });
+        }
       };
 
       if(method == UwsRouteMethod::ANY) {
@@ -84,23 +95,6 @@ public:
                      facebook::jsi::Runtime &rt,
                      std::shared_ptr<facebook::react::CallInvoker> &jsInvoker,
                      const std::function<void ()> &closeHandler) : facebook::jsi::Object(rt) {
-//    this->setProperty(rt,
-//                      "addServerName",
-//                      facebook::jsi::Function::createFromHostFunction(rt,
-//                                                                      facebook::jsi::PropNameID::forUtf8(rt, "addServerName"),
-//                                                                      2,
-//                                                                      [&appRunner](facebook::jsi::Runtime &rt_1,
-//                                                                                   const facebook::jsi::Value &thisValue,
-//                                                                                   const facebook::jsi::Value *arguments,
-//                                                                                   size_t count) -> facebook::jsi::Value {
-//      auto hostname = arguments[0].asString(rt_1).utf8(rt_1);
-//      auto options = arguments[1].asObject(rt_1);
-//
-//      appRunner->app.addServerName()
-//
-//      return facebook::jsi::Value::undefined();
-//    }));
-
     this->setProperty(rt,
                       "close",
                       facebook::jsi::Function::createFromHostFunction(rt,
@@ -112,6 +106,66 @@ public:
                                                                                      size_t count) -> facebook::jsi::Value {
       closeHandler();
       return facebook::jsi::Value::undefined();
+    }));
+
+    this->setProperty(rt,
+                      "domain",
+                      facebook::jsi::Function::createFromHostFunction(rt,
+                                                                      facebook::jsi::PropNameID::forUtf8(rt, "domain"),
+                                                                      0,
+                                                                      [&appRunner](facebook::jsi::Runtime &rt_1,
+                                                                                     const facebook::jsi::Value &thisValue,
+                                                                                     const facebook::jsi::Value *arguments,
+                                                                                     size_t count) -> facebook::jsi::Value {
+      auto serverName = arguments[0].asString(rt_1).utf8(rt_1);
+      appRunner->app.domain(serverName);
+
+      return {rt_1, thisValue};
+    }));
+
+    this->setProperty(rt,
+                      "filter",
+                      facebook::jsi::Function::createFromHostFunction(rt,
+                                                                      facebook::jsi::PropNameID::forUtf8(rt, "filter"),
+                                                                      0,
+                                                                      [&appRunner, &jsInvoker](facebook::jsi::Runtime &rt_1,
+                                                                                   const facebook::jsi::Value &thisValue,
+                                                                                   const facebook::jsi::Value *arguments,
+                                                                                   size_t count) -> facebook::jsi::Value {
+      auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
+
+      appRunner->app.filter([asyncCallback = facebook::react::AsyncCallback(rt_1, std::move(callback), jsInvoker)](auto *res, int count) {
+        asyncCallback.call([&res, count](facebook::jsi::Runtime &rt_2, facebook::jsi::Function &cb) {
+          auto httpResponseObject = std::make_shared<react_native_uws::HttpResponseObject>(rt_2, res);
+          cb.call(rt_2,
+                  *httpResponseObject,
+                  count);
+        });
+      });
+
+      return {rt_1, thisValue};
+    }));
+
+    /// UNTESTED
+    /// It's copied and modified method from uWebSockets.js (for the Node.js).
+    /// Yet, I don't even know what the method is for.
+    this->setProperty(rt,
+                      "getDescriptor",
+                      facebook::jsi::Function::createFromHostFunction(rt,
+                                                                      facebook::jsi::PropNameID::forUtf8(rt, "getDescriptor"),
+                                                                      0,
+                                                                      [&appRunner](facebook::jsi::Runtime &rt_1,
+                                                                                   const facebook::jsi::Value &thisValue,
+                                                                                   const facebook::jsi::Value *arguments,
+                                                                                   size_t count) -> facebook::jsi::Value {
+      static_assert(sizeof(double) >= sizeof(appRunner));
+
+      uWS::App *app = &(appRunner->app);
+
+      double descriptor = 0;
+      memcpy(&descriptor, &app, sizeof(app));
+
+      return descriptor;
     }));
 
     this->setProperty(rt,
@@ -155,6 +209,19 @@ public:
       });
 
       return {rt_1, thisValue};
+    }));
+
+    this->setProperty(rt,
+                      "numSubscribers",
+                      facebook::jsi::Function::createFromHostFunction(rt,
+                                                                      facebook::jsi::PropNameID::forUtf8(rt, "numSubscribers"),
+                                                                      1,
+                                                                      [&appRunner](facebook::jsi::Runtime &rt_1,
+                                                                                   const facebook::jsi::Value &thisValue,
+                                                                                   const facebook::jsi::Value *arguments,
+                                                                                   size_t count) -> facebook::jsi::Value {
+      auto topic = arguments[0].asString(rt_1).utf8(rt_1);
+      return static_cast<int>(appRunner->app.numSubscribers(std::string_view(topic)));
     }));
 
     this->setProperty(rt,
