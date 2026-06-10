@@ -2,13 +2,13 @@ import type {
 	ListenOptions,
 } from "../modules/ListenOptions"
 
-import type {
-	AppDescriptor,
-} from "./AppDescriptor"
+// import type {
+// 	AppDescriptor,
+// } from "./AppDescriptor"
 
-import type {
-	AppOptions,
-} from "./AppOptions"
+// import type {
+// 	AppOptions,
+// } from "./AppOptions"
 
 import type {
 	HttpRequest,
@@ -34,20 +34,23 @@ import type {
  * Definitions of the `App` and `SSLApp`. This is entirely copied from uWebSockets.js
  */
 export interface TemplatedApp {
+	// Can't figure it out how to implement it in React Native
 	/**
 	 * Add a child app descriptor for worker thread distribution.
 	 */
-	addChildAppDescriptor(
-		descriptor: AppDescriptor,
-	): void,
+	// addChildAppDescriptor(
+	// 	descriptor: AppDescriptor,
+	// ): void,
 
+	// TODO
+	// Need the SSL implementation
 	/**
 	 * Adds a server name.
 	 */
-	addServerName(
-		hostname: string,
-		options: AppOptions,
-	) : TemplatedApp,
+	// addServerName(
+	// 	hostname: string,
+	// 	options: AppOptions,
+	// ) : TemplatedApp,
 
 	/**
 	 * Closes all sockets including listen sockets. This will forcefully terminate all connections.
@@ -68,10 +71,11 @@ export interface TemplatedApp {
 		cb: (res: HttpResponse, count: number) => void | Promise<void>,
 	) : TemplatedApp,
 
+	// Can't figure it out how to implement it in React Native
 	/**
 	 * Returns the app descriptor for worker thread distribution.
 	 */
-	getDescriptor(): AppDescriptor,
+	// getDescriptor(): AppDescriptor,
 
 	/**
 	 * Listens to hostname & port and sets Listen Options. Callback hands either false or a listen socket.
@@ -109,12 +113,14 @@ export interface TemplatedApp {
 		cb: (listenSocket: us_listen_socket | false) => void | Promise<void>,
 	) : TemplatedApp,
 
+	// TODO
+	// Need the SSL implementation
 	/**
 	 * Registers a synchronous callback on missing server names. See /examples/ServerName.js.
 	 */
-	missingServerName(
-		cb: (hostname: string) => void,
-	) : TemplatedApp,
+	// missingServerName(
+	// 	cb: (hostname: string) => void,
+	// ) : TemplatedApp,
 
 	/**
 	 * Returns number of subscribers for this topic.
@@ -133,19 +139,22 @@ export interface TemplatedApp {
 		compress?: boolean,
 	) : boolean,
 
+	// Can't figure it out how to implement it in React Native
 	/**
 	 * Remove a child app descriptor.
 	 */
-	removeChildAppDescriptor(
-		descriptor: AppDescriptor,
-	): void,
+	// removeChildAppDescriptor(
+	// 	descriptor: AppDescriptor,
+	// ): void,
 
+	// TODO
+	// Need the SSL implementation
 	/**
 	 * Removes a server name.
 	 */
-	removeServerName(
-		hostname: string,
-	) : TemplatedApp,
+	// removeServerName(
+	// 	hostname: string,
+	// ) : TemplatedApp,
 
 	/**
 	 * Registers a handler matching specified URL pattern where WebSocket upgrade requests are caught.

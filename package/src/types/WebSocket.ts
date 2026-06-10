@@ -46,17 +46,23 @@ export interface WebSocket/* <UserData> */ {
 		message?: RecognizedString,
 	) : number,
 
-	/** Subscribe to a topic. */
+	/**
+	 * Subscribe to a topic.
+	 */
 	subscribe(
 		topic: RecognizedString,
 	) : boolean,
 
-	/** Unsubscribe from a topic. Returns true on success, if the WebSocket was subscribed. */
+	/**
+	 * Unsubscribe from a topic. Returns true on success, if the WebSocket was subscribed.
+	 */
 	unsubscribe(
 		topic: RecognizedString,
 	) : boolean,
 
-	/** Returns whether this websocket is subscribed to topic. */
+	/**
+	 * Returns whether this websocket is subscribed to topic.
+	 */
 	isSubscribed(
 		topic: RecognizedString,
 	) : boolean,
@@ -91,13 +97,15 @@ export interface WebSocket/* <UserData> */ {
      * IPv6 is 16 byte long and can be converted to text in similar ways, but you typically print digits in HEX.
      *
      * See getRemoteAddressAsText() for a text version.
+	 * 
+	 * @experimental It's an experimental due to unstable of ArrayBuffer support from React Native.
      */
 	getRemoteAddress() : ArrayBuffer,
 
 	/**
-	 * Returns the remote IP address as text. See RecognizedString.
+	 * Returns the remote IP address as text.
 	 */
-	getRemoteAddressAsText() : ArrayBuffer,
+	getRemoteAddressAsText() : /* ArrayBuffer */string,
 
 	/**
 	 * Returns the remote port number.
@@ -107,7 +115,7 @@ export interface WebSocket/* <UserData> */ {
 	/**
 	 * Returns the UserData ~object~ string.
 	 */
-	getUserData() : /* UserData */ string,
+	getUserData() : /* UserData */string,
 
 	/**
 	 * Sends the first fragment of a fragmented message. Use for sending large messages in chunks.
