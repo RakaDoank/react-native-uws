@@ -128,6 +128,20 @@ public:
       return facebook::jsi::BigInt::fromUint64(rt_1, res->getWriteOffset());
     }));
 
+    this->setProperty(rt, "onAborted", facebook::jsi::Function::createFromHostFunction(rt,
+                                                                                            facebook::jsi::PropNameID::forUtf8(rt, "onAborted"),
+                                                                                            1,
+                                                                                            [res](facebook::jsi::Runtime &rt_1,
+                                                                                                  const facebook::jsi::Value &thisValue,
+                                                                                                  const facebook::jsi::Value *arguments,
+                                                                                                  size_t count) -> facebook::jsi::Value {
+      auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
+      res->onAborted([&rt_1, callback_ = std::move(callback)]() {
+        callback_.call(rt_1);
+      });
+      return {rt_1, thisValue};
+    }));
+
     this->setProperty(rt, "onData", facebook::jsi::Function::createFromHostFunction(rt,
                                                                                  facebook::jsi::PropNameID::forUtf8(rt, "onData"),
                                                                                  1,
