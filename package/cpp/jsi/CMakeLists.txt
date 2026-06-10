@@ -1,4 +1,4 @@
-project("react_native_uws__bridging")
+project("react_native_uws__jsi")
 
 file(
 	GLOB_RECURSE
@@ -15,7 +15,7 @@ add_library(
 )
 
 add_library(
-	"react_native_uws::bridging"
+	"react_native_uws::jsi"
 	ALIAS
 	${PROJECT_NAME}
 )

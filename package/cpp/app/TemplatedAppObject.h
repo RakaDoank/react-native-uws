@@ -45,27 +45,23 @@ private:
 //        syncCallback->call(httpResponseObject.get(), httpRequestObject.get());
 //      };
 
-      std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [asyncCallback = facebook::react::AsyncCallback(rt, std::move(callback), jsInvoker)](auto *res, auto *req) {
-        auto aborted = std::make_shared<bool>(false);
+      std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [&jsInvoker, asyncCallback = facebook::react::AsyncCallback(rt, std::move(callback), jsInvoker)](auto *res, auto *req) {
+        asyncCallback.call([&jsInvoker, &res, &req](facebook::jsi::Runtime &rt_1, facebook::jsi::Function &cb) {
+          auto httpResponseObject = std::make_shared<HttpResponseObject>(rt_1, res, jsInvoker);
+          auto httpRequestObject = std::make_shared<HttpRequestObject>(rt_1, req);
+
+          cb.call(rt_1,
+                  *httpResponseObject,
+                  *httpRequestObject);
+        });
+
+//        auto aborted = std::make_shared<bool>(false);
         /**
          * I don't know why without this,
          * uWebSockets can't wait the route handler to be finished.
          * I thought `onAborted` is just a callback or event listener.
          */
-        res->onAborted([aborted]() {
-          *aborted = true;
-        });
-
-        if(!*aborted) {
-          asyncCallback.call([&res, &req](facebook::jsi::Runtime &rt_1, facebook::jsi::Function &cb) {
-            auto httpResponseObject = std::make_shared<HttpResponseObject>(rt_1, res);
-            auto httpRequestObject = std::make_shared<HttpRequestObject>(rt_1, req);
-
-            cb.call(rt_1,
-                    *httpResponseObject,
-                    *httpRequestObject);
-          });
-        }
+        res->onAborted([]() {});
       };
 
       if(method == UwsRouteMethod::ANY) {
@@ -134,9 +130,9 @@ public:
                                                                                    size_t count) -> facebook::jsi::Value {
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
 
-      appRunner->app.filter([asyncCallback = facebook::react::AsyncCallback(rt_1, std::move(callback), jsInvoker)](auto *res, int count) {
-        asyncCallback.call([&res, count](facebook::jsi::Runtime &rt_2, facebook::jsi::Function &cb) {
-          auto httpResponseObject = std::make_shared<react_native_uws::HttpResponseObject>(rt_2, res);
+      appRunner->app.filter([&jsInvoker, asyncCallback = facebook::react::AsyncCallback(rt_1, std::move(callback), jsInvoker)](auto *res, int count) {
+        asyncCallback.call([&jsInvoker, &res, count](facebook::jsi::Runtime &rt_2, facebook::jsi::Function &cb) {
+          auto httpResponseObject = std::make_shared<react_native_uws::HttpResponseObject>(rt_2, res, jsInvoker);
           cb.call(rt_2,
                   *httpResponseObject,
                   count);
@@ -149,24 +145,24 @@ public:
     /// UNTESTED
     /// It's copied and modified method from uWebSockets.js (for the Node.js).
     /// Yet, I don't even know what the method is for.
-    this->setProperty(rt,
-                      "getDescriptor",
-                      facebook::jsi::Function::createFromHostFunction(rt,
-                                                                      facebook::jsi::PropNameID::forUtf8(rt, "getDescriptor"),
-                                                                      0,
-                                                                      [&appRunner](facebook::jsi::Runtime &rt_1,
-                                                                                   const facebook::jsi::Value &thisValue,
-                                                                                   const facebook::jsi::Value *arguments,
-                                                                                   size_t count) -> facebook::jsi::Value {
-      static_assert(sizeof(double) >= sizeof(appRunner));
-
-      uWS::App *app = &(appRunner->app);
-
-      double descriptor = 0;
-      memcpy(&descriptor, &app, sizeof(app));
-
-      return descriptor;
-    }));
+//    this->setProperty(rt,
+//                      "getDescriptor",
+//                      facebook::jsi::Function::createFromHostFunction(rt,
+//                                                                      facebook::jsi::PropNameID::forUtf8(rt, "getDescriptor"),
+//                                                                      0,
+//                                                                      [&appRunner](facebook::jsi::Runtime &rt_1,
+//                                                                                   const facebook::jsi::Value &thisValue,
+//                                                                                   const facebook::jsi::Value *arguments,
+//                                                                                   size_t count) -> facebook::jsi::Value {
+//      static_assert(sizeof(double) >= sizeof(appRunner));
+//
+//      uWS::App *app = &(appRunner->app);
+//
+//      double descriptor = 0;
+//      memcpy(&descriptor, &app, sizeof(app));
+//
+//      return descriptor;
+//    }));
 
     this->setProperty(rt,
                       "listen",

@@ -59,7 +59,7 @@ export default function Page() {
 
 			console.log("getUrl", req.getUrl(), req.getUrl().length)
 
-			res.end("hello bebelac")
+			res.end("hello test")
 		})
 
 		app.get("/testing", (res, req) => {
@@ -74,6 +74,27 @@ export default function Page() {
 			})
 
 			res.end("</ul></body></html>");
+		})
+
+		app.post("/ondata", res => {
+			console.log("/ondata")
+			res.onData((chunk, isLast) => {
+				console.log("ondata", chunk.length, isLast)
+				if(isLast) {
+					res.end("finished")
+				}
+			})
+		})
+
+		app.post("/ondatav2", (res) => {
+			console.log("/ondatav2")
+			res.onDataV2((chunk, maxRemainingBodyLength) => {
+				console.log("onDataV2", chunk.byteLength, maxRemainingBodyLength)
+
+				if(!maxRemainingBodyLength) {
+					res.end("finish")
+				}
+			})
 		})
 
 		app.listen(5000, () => {

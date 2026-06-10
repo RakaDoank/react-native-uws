@@ -150,6 +150,7 @@ target_compile_options(uWebSockets INTERFACE -Wno-deprecated-declarations)
 
 add_subdirectory(app)
 add_subdirectory(bridging)
+add_subdirectory(jsi)
 
 # Link Libraries
 target_link_libraries(
@@ -163,4 +164,5 @@ target_link_libraries(
 	log
 	react_native_uws::app
 	react_native_uws::bridging
+	react_native_uws::jsi
 )

@@ -127,7 +127,7 @@ export interface HttpResponse {
 			chunk: ArrayBuffer,
 			isLast: boolean,
 		) => void,
-	) : HttpResponse,
+	) : void,
 
 	/**
 	 * Handler for reading HTTP request body data. V2.
@@ -138,8 +138,11 @@ export interface HttpResponse {
      * maxRemainingBodyLength is the known maximum of the remaining body length. Can be used to preallocate a receive buffer.
 	 */
 	onDataV2(
-		handler: (chunk: ArrayBuffer, maxRemainingBodyLength: bigint) => void,
-	) : HttpResponse,
+		handler: (
+			chunk: ArrayBuffer,
+			maxRemainingBodyLength: bigint,
+		) => void,
+	) : void,
 
 	/**
 	 * Registers a handler for writable events. Continue failed write attempts in here.

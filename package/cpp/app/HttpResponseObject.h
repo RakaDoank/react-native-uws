@@ -1,5 +1,7 @@
 #pragma once
 
+#include <android/log.h>
+#include <jsi/Buffer.h>
 #include <jsi/jsi.h>
 #include <utility>
 #include <uWebSockets/HttpResponse.h>
@@ -10,7 +12,8 @@ class HttpResponseObject : public facebook::jsi::Object {
 
 public:
   HttpResponseObject(facebook::jsi::Runtime &rt,
-                     uWS::HttpResponse<false> *res) : facebook::jsi::Object(rt) {
+                     uWS::HttpResponse<false> *res,
+                     std::shared_ptr<facebook::react::CallInvoker> &jsInvoker) : facebook::jsi::Object(rt) {
     this->setProperty(rt, "close", facebook::jsi::Function::createFromHostFunction(rt,
                                                                                  facebook::jsi::PropNameID::forUtf8(rt, "close"),
                                                                                  1,
@@ -145,37 +148,45 @@ public:
     this->setProperty(rt, "onData", facebook::jsi::Function::createFromHostFunction(rt,
                                                                                  facebook::jsi::PropNameID::forUtf8(rt, "onData"),
                                                                                  1,
-                                                                                 [res](facebook::jsi::Runtime &rt_1,
+                                                                                 [res, &jsInvoker](facebook::jsi::Runtime &rt_1,
                                                                                        const facebook::jsi::Value &thisValue,
                                                                                        const facebook::jsi::Value *arguments,
                                                                                        size_t count) -> facebook::jsi::Value {
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
 
-      res->onData([&rt_1, callback_ = std::move(callback)](auto chunk, auto isLast) {
-        callback_.call(rt_1,
-                       std::string(chunk),
-                       isLast);
+      res->onData([asyncCallback = facebook::react::AsyncCallback(rt_1, std::move(callback), jsInvoker)](auto chunk, auto isLast) {
+        asyncCallback.call([chunk, isLast](facebook::jsi::Runtime &rt_2, facebook::jsi::Function &cb) {
+          cb.call(rt_2,
+                  std::string(chunk),
+                  isLast);
+        });
       });
 
-      return {rt_1, thisValue};
+      return facebook::jsi::Value::undefined();
     }));
 
     this->setProperty(rt, "onDataV2", facebook::jsi::Function::createFromHostFunction(rt,
                                                                                       facebook::jsi::PropNameID::forUtf8(rt, "onDataV2"),
                                                                                       1,
-                                                                                      [res](facebook::jsi::Runtime &rt_1,
+                                                                                      [res, &jsInvoker](facebook::jsi::Runtime &rt_1,
                                                                                             const facebook::jsi::Value &thisValue,
                                                                                             const facebook::jsi::Value *arguments,
                                                                                             size_t count) -> facebook::jsi::Value {
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
 
-      res->onDataV2([&rt_1, callback_ = std::move(callback)](auto chunk, auto maxRemainingBodyLength) {
-        callback_.call(rt_1,
-                       std::string(chunk),
-                       facebook::jsi::BigInt::fromUint64(rt_1, maxRemainingBodyLength));
+      __android_log_print(ANDROID_LOG_INFO, "uwsserver", "onDataV2 0");
+      res->onDataV2([asyncCallback = facebook::react::AsyncCallback(rt_1, std::move(callback), jsInvoker)](std::string_view chunk, auto maxRemainingBodyLength) {
+        __android_log_print(ANDROID_LOG_INFO, "uwsserver", "onDataV2 1");
+        asyncCallback.call([chunk, maxRemainingBodyLength](facebook::jsi::Runtime &rt_2, facebook::jsi::Function &cb) {
+          __android_log_print(ANDROID_LOG_INFO, "uwsserver", "onDataV2 2");
+          auto stringMutableBuffer = std::make_shared<facebook::jsi::StringMutableBuffer>(std::string(chunk));
+          cb.call(rt_2,
+                  facebook::jsi::ArrayBuffer(rt_2, stringMutableBuffer),
+                  facebook::jsi::BigInt::fromUint64(rt_2, maxRemainingBodyLength));
+        });
       });
 
-      return {rt_1, thisValue};
+      return facebook::jsi::Value::undefined();
     }));
 
     this->setProperty(rt, "pause", facebook::jsi::Function::createFromHostFunction(rt,
