@@ -1,14 +1,22 @@
 #pragma once
 
+#include <ReactCommon/CallInvoker.h>
 #include <algorithm>
 #include <cmath>
-#include <ReactCommon/CallInvoker.h>
 #include <jsi/jsi.h>
 #include <uWebSockets/HttpContextData.h>
 
 namespace react_native_uws {
 
 class HttpRequestObject : public facebook::jsi::Object {
+
+private:
+  /**
+   * This is just a hacky way to fix the "req->getParameter(0)" that doesn't work from JS call.
+   * Consider this solution is temporary until we know how to fix `req->getParameter()` properly
+   * inside of the JSI object.
+   */
+  std::vector<std::pair<std::string/*key*/, std::string_view>> parameters;
 
 public:
   HttpRequestObject(facebook::jsi::Runtime &rt,
@@ -80,7 +88,7 @@ public:
                       facebook::jsi::Function::createFromHostFunction(rt,
                                                                       facebook::jsi::PropNameID::forUtf8(rt, "getParameter"),
                                                                       1,
-                                                                      [req](facebook::jsi::Runtime &rt_1,
+                                                                      [this](facebook::jsi::Runtime &rt_1,
                                                                             const facebook::jsi::Value &thisValue,
                                                                             const facebook::jsi::Value *arguments,
                                                                             size_t count) -> facebook::jsi::Value {
@@ -88,24 +96,58 @@ public:
         return facebook::jsi::Value::undefined();
       }
 
-      std::string_view parameter;
+      /// Doesn't work. I don't know why.
+      /// req->getParameter() always returned string_view null data
+//      std::string_view parameter;
+//
+//      if(arguments[0].isNumber()) {
+//        // get by index
+//        auto index = arguments[0].asNumber();
+//        parameter = req->getParameter(static_cast<int>(std::floor(index)));
+//      } else {
+//        // get by name
+//        auto paramNamed = arguments[0].asString(rt_1).utf8(rt_1);
+//        parameter = req->getParameter(std::string_view(paramNamed));
+//      }
+//
+//      if(parameter.data() == nullptr) {
+//        return facebook::jsi::Value::undefined();
+//      }
 
-      if(arguments[0].isNumber()) {
-        // get by index
-        auto index = arguments[0].asNumber();
-        parameter = req->getParameter(static_cast<int>(std::floor(index)));
-      } else {
-        // get by name
-        auto paramNamed = arguments[0].asString(rt_1).utf8(rt_1);
-        parameter = req->getParameter(paramNamed);
+      /// This is temporary solution
+
+      if(this->parameters.empty()) {
+        return facebook::jsi::Value::undefined();
       }
 
-      if(parameter.data() == nullptr) {
+      std::string_view it;
+
+      if(arguments[0].isNumber()) {
+        /// get by index
+        /// this is much faster
+
+        auto index = arguments[0].asNumber();
+        if(index < this->parameters.size()) {
+          it = this->parameters.at(static_cast<int>(index)).second;
+        }
+      } else {
+        /// get by name
+        /// Do we really need std::unordered_map for the faster lookup here?
+
+        auto _it = std::find_if(this->parameters.begin(), this->parameters.end(), [key = arguments[0].asString(rt_1).utf8(rt_1)](auto &item) -> bool {
+          return item.first == key;
+        });
+        if(_it != this->parameters.end()) {
+          it = _it->second;
+        }
+      }
+
+      if(it.data() == nullptr) {
         return facebook::jsi::Value::undefined();
       }
 
       return facebook::jsi::String::createFromAscii(rt_1,
-                                                    std::string(parameter));
+                                                    std::string(it));
     }));
 
     this->setProperty(rt,
@@ -160,6 +202,11 @@ public:
     }));
 
   } // HttpRequestObject
+
+  void addParameter(std::string &&key,
+                    std::string_view value) {
+    this->parameters.emplace_back(key, value);
+  }
 
 };
 

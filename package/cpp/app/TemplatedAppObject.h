@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <jsi/jsi.h>
 #include <mutex>
+#include <sstream>
 #include <utility>
 #include <uWebSockets/App.h>
 #include "AppRunner.h"
@@ -62,11 +63,11 @@ private:
 //        syncCallback->call(httpResponseObject.get(), httpRequestObject.get());
 //      };
 
-      std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [&rt, &jsInvoker, asyncCallback = facebook::react::AsyncCallback(rt, std::move(callback), jsInvoker)](uWS::HttpResponse<false> *res, uWS::HttpRequest *req) {
+      std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [pattern, &rt, &jsInvoker, asyncCallback = facebook::react::AsyncCallback(rt, std::move(callback), jsInvoker)](uWS::HttpResponse<false> *res, uWS::HttpRequest *req) {
         auto httpResponseObject = std::make_shared<HttpResponseObject>(rt, res, jsInvoker);
         auto httpRequestObject = std::make_shared<HttpRequestObject>(rt, req);
 
-        asyncCallback.callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority, [/* &jsInvoker, &res, &req */httpResponseObject, httpRequestObject](facebook::jsi::Runtime &rt_1, facebook::jsi::Function &cb) {
+        asyncCallback.callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority, [httpResponseObject, httpRequestObject](facebook::jsi::Runtime &rt_1, facebook::jsi::Function &cb) {
           cb.call(rt_1,
                   *httpResponseObject,
                   *httpRequestObject);
@@ -75,9 +76,11 @@ private:
         /// We have to make JS call asynchronously because the uWebSockets app run at different thread.
         /// See the `react_native_uws::AppRunner`, and `facebook::react::AsyncCallback`.
         /// So this predefined `onAborted` assignment below is to tell that
-        /// uWebSockets has to wait until JS call finished.
+        /// uWebSockets has to wait until JS call finished with the `res.end() or res.tryEnd()`.
         ///
+        /// Stated from uWebSockets
         /// `Returning from a request handler without responding or attaching an onAborted handler is ill-use`
+        ///
         /// I thought `onAborted` is just a callback or event listener.
         res->onAborted([httpResponseObject]() {
           httpResponseObject->jsCall_onAborted();
@@ -89,6 +92,24 @@ private:
         res->onDataV2([httpResponseObject](auto chunk, auto maxRemainingBodyLength) {
           httpResponseObject->jsCall_onDataV2(chunk, maxRemainingBodyLength);
         });
+
+        /// This is a hacky way and probably temporary.
+        /// The "req->getParameter" does not working from JS call.
+        /// It always returned null data of string_view both by index and named.
+        {
+          std::stringstream ss = std::stringstream(pattern);
+          std::string token;
+
+          while(std::getline(ss, token, '/')) {
+            if(token[0] == ':') {
+              auto key = token.substr(1);
+              auto value = req->getParameter(key);
+              if(value.data() != nullptr) {
+                httpRequestObject->addParameter(std::move(key), value);
+              }
+            }
+          }
+        }
       };
 
       if(method == UwsRouteMethod::ANY) {
@@ -201,8 +222,8 @@ public:
                                                                                                const facebook::jsi::Value *arguments,
                                                                                                size_t count) -> facebook::jsi::Value {
       std::optional<std::string> host = std::nullopt;
-      double port = -1; // it could be unsigned short, but JSI provide it as double
-      std::optional<int> options = std::nullopt;
+      double port                     = -1; // it could be unsigned short, but JSI provide it as double
+      std::optional<int> options      = std::nullopt;
 
       if(arguments[0].isString()) {
         host = arguments[0].asString(rt_1).utf8(rt_1);
