@@ -52,10 +52,10 @@ public:
     this->setProperty(rt, "cork", facebook::jsi::Function::createFromHostFunction(rt,
                                                                                  facebook::jsi::PropNameID::forUtf8(rt, "cork"),
                                                                                  1,
-                                                                                 [res](facebook::jsi::Runtime &rt_1,
-                                                                                       const facebook::jsi::Value &thisValue,
-                                                                                       const facebook::jsi::Value *arguments,
-                                                                                       size_t count) -> facebook::jsi::Value {
+                                                                                 [res, &jsInvoker](facebook::jsi::Runtime &rt_1,
+                                                                                                   const facebook::jsi::Value &thisValue,
+                                                                                                   const facebook::jsi::Value *arguments,
+                                                                                                   size_t count) -> facebook::jsi::Value {
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
 
       res->cork([asyncCallback = facebook::react::AsyncCallback(rt_1, std::move(callback), jsInvoker)]() {
@@ -65,31 +65,13 @@ public:
       return {rt_1, thisValue};
     }));
 
-    /// TODO
-    /// It is a custom method from uWebSockets.js.
-    /// We need to figure it out how to implement this method in JSI way.
-//     this->setProperty(rt, "collectBody", facebook::jsi::Function::createFromHostFunction(rt,
-//                                                                                  facebook::jsi::PropNameID::forUtf8(rt, "collectBody"),
-//                                                                                  1,
-//                                                                                  [res](facebook::jsi::Runtime &rt_1,
-//                                                                                                    const facebook::jsi::Value &thisValue,
-//                                                                                                    const facebook::jsi::Value *arguments,
-//                                                                                                    size_t count) -> facebook::jsi::Value {
-//       auto maxSize = arguments[0].asNumber();
-//       auto handler = arguments[1].asObject(rt_1).asFunction(rt_1);
-//
-//       // res->onDataV2
-//
-//       return {rt_1, thisValue};
-//     }));
-
     this->setProperty(rt, "end", facebook::jsi::Function::createFromHostFunction(rt,
                                                                                  facebook::jsi::PropNameID::forUtf8(rt, "end"),
                                                                                  1,
                                                                                  [this, res](facebook::jsi::Runtime &rt_1,
-                                                                                       const facebook::jsi::Value &thisValue,
-                                                                                       const facebook::jsi::Value *arguments,
-                                                                                       size_t count) -> facebook::jsi::Value {
+                                                                                             const facebook::jsi::Value &thisValue,
+                                                                                             const facebook::jsi::Value *arguments,
+                                                                                             size_t count) -> facebook::jsi::Value {
       this->preEnd(rt_1);
 
       auto body = arguments[0].asString(rt_1).utf8(rt_1);
@@ -102,9 +84,9 @@ public:
                                                                                  facebook::jsi::PropNameID::forUtf8(rt, "endWithoutBody"),
                                                                                  2,
                                                                                  [this, res](facebook::jsi::Runtime &rt_1,
-                                                                                       const facebook::jsi::Value &thisValue,
-                                                                                       const facebook::jsi::Value *arguments,
-                                                                                       size_t count) -> facebook::jsi::Value {
+                                                                                             const facebook::jsi::Value &thisValue,
+                                                                                             const facebook::jsi::Value *arguments,
+                                                                                             size_t count) -> facebook::jsi::Value {
       this->preEnd(rt_1);
 
       if(!arguments) {
@@ -169,11 +151,7 @@ public:
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
 
       if(this->OnAbortedAssignee.alreadyAborted) {
-        if(this->OnAbortedAssignee.callback) {
-          this->OnAbortedAssignee.callback->call(facebook::jsi::Value::undefined());
-        } else {
-          callback.call(rt_1, facebook::jsi::Value::undefined());
-        }
+        facebook::react::AsyncCallback(rt_1, std::move(callback), jsInvoker).call();
       } else {
         this->OnAbortedAssignee.callback = std::make_shared<facebook::react::AsyncCallback<facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
       }
@@ -380,7 +358,7 @@ public:
         auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
 
         cb.call(rt,
-                facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringMutableBuffer>(stringMutableBuffer)),
+                facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringMutableBuffer>(std::move(stringMutableBuffer))),
                 facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
       });
     }
