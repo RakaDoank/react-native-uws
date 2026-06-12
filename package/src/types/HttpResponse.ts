@@ -108,9 +108,10 @@ export interface HttpResponse {
 	getWriteOffset() : number,
 
 	/**
-	 * Every HttpResponse MUST have an attached abort handler IF you do not respond
-     * to it immediately inside of the callback. Returning from an Http request handler
-     * without attaching (by calling onAborted) an abort handler is ill-use and will terminate.
+	 * Every HttpResponse MUST have an attached abort handler.
+	 * If you do not respond to it immediately inside of the callback.
+	 * Returning from an Http request handler without attaching
+	 * (by calling onAborted) an abort handler is ill-use and will terminate.
      * When this event emits, the response has been aborted and may not be used.
 	 */
 	onAborted(
@@ -128,7 +129,7 @@ export interface HttpResponse {
 	 * 
 	 * Not like in uWebSockets.js for Node.js,
 	 * your handler/callback might be called only once due to predefined `onData`
-	 * that we already passed earlier in C++ side.
+	 * that we already passed earlier in C++ side and it's already finished.
 	 * 
 	 * We have to pass the `onData` lambda in C++ early because doing late assignment of `onDataV2` handler will do nothing or our handler is never getting called. This is also due to uWebSockets run at different thread, and that's also by design to prevent Main/UI thread blocking.
 	 */
@@ -153,7 +154,7 @@ export interface HttpResponse {
 	 * 
 	 * Not like in uWebSockets.js for Node.js,
 	 * your handler/callback might be called only once due to predefined `onDataV2`
-	 * that we already passed earlier in C++ side.
+	 * that we already passed earlier in C++ side and it's already finished.
 	 * 
 	 * We have to pass the `onDataV2` lambda in C++ early because doing late assignment of `onDataV2` handler will do nothing or our handler is never getting called. This is also due to uWebSockets run at different thread, and that's also by design to prevent Main/UI thread blocking.
 	 */
