@@ -19,6 +19,10 @@ import type {
 } from "./HttpResponse"
 
 import type {
+	HttpRouterOptions,
+} from "./HttpRouterOptions"
+
+import type {
 	RecognizedString,
 } from "./RecognizedString"
 
@@ -181,6 +185,7 @@ export interface TemplatedApp {
 	any(
 		pattern: RecognizedString,
 		handler: (res: HttpResponse, req: HttpRequest) => void | Promise<void>,
+		options?: HttpRouterOptions,
 	) : TemplatedApp,
 
 	/**
@@ -189,6 +194,7 @@ export interface TemplatedApp {
 	connect(
 		pattern: RecognizedString,
 		handler: (res: HttpResponse, req: HttpRequest) => void | Promise<void>,
+		options?: HttpRouterOptions,
 	) : TemplatedApp,
 
 	/**
@@ -197,6 +203,7 @@ export interface TemplatedApp {
 	del(
 		pattern: RecognizedString,
 		handler: (res: HttpResponse, req: HttpRequest) => void | Promise<void>,
+		options?: HttpRouterOptions,
 	) : TemplatedApp,
 
 	/**
@@ -205,6 +212,7 @@ export interface TemplatedApp {
 	get(
 		pattern: RecognizedString,
 		handler: (res: HttpResponse, req: HttpRequest) => void | Promise<void>,
+		options?: HttpRouterOptions,
 	) : TemplatedApp,
 
 	/**
@@ -213,6 +221,7 @@ export interface TemplatedApp {
 	head(
 		pattern: RecognizedString,
 		handler: (res: HttpResponse, req: HttpRequest) => void | Promise<void>,
+		options?: HttpRouterOptions,
 	) : TemplatedApp,
 
 	/**
@@ -221,6 +230,7 @@ export interface TemplatedApp {
 	options(
 		pattern: RecognizedString,
 		handler: (res: HttpResponse, req: HttpRequest) => void | Promise<void>,
+		options?: HttpRouterOptions,
 	) : TemplatedApp,
 
 	/**
@@ -229,6 +239,7 @@ export interface TemplatedApp {
 	patch(
 		pattern: RecognizedString,
 		handler: (res: HttpResponse, req: HttpRequest) => void | Promise<void>,
+		options?: HttpRouterOptions,
 	) : TemplatedApp,
 
 	/**
@@ -237,6 +248,7 @@ export interface TemplatedApp {
 	post(
 		pattern: RecognizedString,
 		handler: (res: HttpResponse, req: HttpRequest) => void | Promise<void>,
+		options?: HttpRouterOptions,
 	) : TemplatedApp,
 
 	/**
@@ -245,6 +257,7 @@ export interface TemplatedApp {
 	put(
 		pattern: RecognizedString,
 		handler: (res: HttpResponse, req: HttpRequest) => void | Promise<void>,
+		options?: HttpRouterOptions,
 	) : TemplatedApp,
 
 	/**
@@ -253,6 +266,7 @@ export interface TemplatedApp {
 	trace(
 		pattern: RecognizedString,
 		handler: (res: HttpResponse, req: HttpRequest) => void | Promise<void>,
+		options?: HttpRouterOptions,
 	) : TemplatedApp,
 
 	// ----- ROUTER -----

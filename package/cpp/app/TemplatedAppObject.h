@@ -63,7 +63,33 @@ private:
 //        syncCallback->call(httpResponseObject.get(), httpRequestObject.get());
 //      };
 
-      std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [pattern, &rt, &jsInvoker, asyncCallback = facebook::react::AsyncCallback(rt, std::move(callback), jsInvoker)](uWS::HttpResponse<false> *res, uWS::HttpRequest *req) {
+      bool disableBodyRead = false;
+      unsigned long maxBodySize = 0;
+
+      /// See /react-native-uws/package/src/types/HttpRouterOptions.ts
+      if(arguments[2].isObject()) {
+        auto httpRouterOptions = arguments[2].asObject(rt);
+
+        {
+          std::string key = "disableBodyRead";
+          if(httpRouterOptions.getProperty(rt, key.c_str()).isBool()) {
+            disableBodyRead = httpRouterOptions.getProperty(rt, key.c_str()).asBool();
+          }
+        }
+
+        {
+          std::string key = "maxBodySize";
+          if(httpRouterOptions.getProperty(rt, key.c_str()).isNumber()) {
+            auto _maxBodySize = httpRouterOptions.getProperty(rt, key.c_str()).asNumber();
+            if(_maxBodySize < 0) {
+              throw facebook::jsi::JSError(rt, "Illegal maxBodySize number expression");
+            }
+            maxBodySize = static_cast<unsigned long>(_maxBodySize);
+          }
+        }
+      }
+
+      std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [pattern, disableBodyRead, maxBodySize, &rt, &jsInvoker, asyncCallback = facebook::react::AsyncCallback(rt, std::move(callback), jsInvoker)](uWS::HttpResponse<false> *res, uWS::HttpRequest *req) {
         auto httpResponseObject = std::make_shared<HttpResponseObject>(rt, res, jsInvoker);
         auto httpRequestObject = std::make_shared<HttpRequestObject>(rt, req);
 
@@ -89,9 +115,14 @@ private:
         /// Sadly, we can't do late assignment to the onDataV2 and onData.
         /// uWebSockets will do nothing to our handler if we assign the lambda so late.
         /// So we have to predefined onDataV2 handler here, and save the chunk.
-        res->onDataV2([httpResponseObject](auto chunk, auto maxRemainingBodyLength) {
-          httpResponseObject->jsCall_onDataV2(chunk, maxRemainingBodyLength);
-        });
+        if(!disableBodyRead) {
+          res->onDataV2([httpResponseObject, maxBodySize](auto chunk, auto maxRemainingBodyLength) {
+            if(maxBodySize > 0 && chunk.size() > maxBodySize) {
+              return;
+            }
+            httpResponseObject->jsCall_onDataV2(chunk, maxRemainingBodyLength);
+          });
+        }
 
         /// This is a hacky way and probably temporary.
         /// The "req->getParameter" does not working from JS call.
