@@ -117,10 +117,41 @@ private:
         /// So we have to predefined onDataV2 handler here, and save the chunk.
         if(!disableBodyRead) {
           res->onDataV2([httpResponseObject, maxBodySize](auto chunk, auto maxRemainingBodyLength) {
-            if(maxBodySize > 0 && chunk.size() > maxBodySize) {
+            if(httpResponseObject->isStopCollectingChunk()) {
               return;
             }
-            httpResponseObject->jsCall_onDataV2(chunk, maxRemainingBodyLength);
+
+            if(maxBodySize > 0) {
+              auto chunkSize = chunk.size();
+              auto currentChunkSize = httpResponseObject->getChunkSize();
+
+              /// First and possibly only chunk
+              if(currentChunkSize == 0 && chunkSize > maxBodySize) {
+                httpResponseObject->stopCollectingChunk();
+                /// set the first chunk
+                httpResponseObject->setChunk(chunk, maxRemainingBodyLength);
+                httpResponseObject->invokeOnDataV2();
+                /// Don't worry,
+                /// JS call may late
+                /// it will invokes the handler once when user pass the handler.
+                return;
+              }
+
+              /// subsequent chunks overflow
+              if(currentChunkSize > 0 && chunkSize > maxBodySize - currentChunkSize) {
+                /// tell to JS that we already stop collecting chunk
+                /// and invoke the JSI onData / onDataText / onDataV2 / onFullData / onFullDataText handler immediately
+                httpResponseObject->stopCollectingChunk();
+                httpResponseObject->invokeOnDataV2();
+                /// Don't worry,
+                /// JS call may late
+                /// it will invokes the handler once when user pass the handler.
+                return;
+              }
+            }
+
+            httpResponseObject->setChunk(chunk, maxRemainingBodyLength);
+            httpResponseObject->invokeOnDataV2();
           });
         }
 

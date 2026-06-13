@@ -97,8 +97,15 @@ export default function Page() {
 		})
 
 		app.post("/ondatav2", (res) => {
+			let isAborted = false
+			res.onAborted(() => {
+				isAborted = true
+			})
+
 			res.onDataV2((chunk, maxRemainingBodyLength) => {
-				if(!maxRemainingBodyLength) {
+				// console.log("onDataV2", chunk.byteLength, maxRemainingBodyLength)
+
+				if(!maxRemainingBodyLength && !isAborted) {
 					res.writeHeader("content-type", "application/json")
 					res.end(
 						JSON.stringify({
@@ -107,6 +114,31 @@ export default function Page() {
 						}),
 					)
 				}
+
+				// already stop collecting because the `maxBodySize` option
+				// if(chunk.byteLength >= 1024 * 1024) {
+				// 	res.writeHeader("content-type", "application/json")
+				// 	res.end(
+				// 		JSON.stringify({
+				// 			type: "onDataV2",
+				// 			byteLength: chunk.byteLength,
+				// 			maxRemainingBodyLength,
+				// 		}),
+				// 	)
+				// }
+			})
+		})
+
+		app.post("/onfulldata", res => {
+			res.onFullData(chunk => {
+				console.log("onFullData", chunk.byteLength)
+				res.writeHeader("content-type", "application/json")
+				res.end(
+					JSON.stringify({
+						type: "onFullData",
+						byteLength: chunk.byteLength,
+					}),
+				)
 			})
 		})
 
@@ -127,8 +159,6 @@ export default function Page() {
 					res.end("not valid data")
 				}
 			})
-		}, {
-			maxBodySize: 1024 * 1024,
 		})
 
 		app.post("/read-json-from-text", res => {
@@ -145,8 +175,6 @@ export default function Page() {
 					res.end("not valid data")
 				}
 			})
-		}, {
-			maxBodySize: 1024 * 1024,
 		})
 
 		app.listen(5000, () => {

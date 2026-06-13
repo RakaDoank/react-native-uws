@@ -1,6 +1,5 @@
 #pragma once
 
-#include <android/log.h>
 #include <jsi/Buffer.h>
 #include <jsi/jsi.h>
 #include <utility>
@@ -23,18 +22,28 @@ private:
      * - onDataV2
      * - onFullData
      */
-    std::shared_ptr<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>> callback = nullptr;
+    std::unique_ptr<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>> callback = nullptr;
 
     /**
-     * For passing string
-     * - onDataText
-     * - onFullDataText
+     * For passing string, only for onFullDataText
      */
-    std::shared_ptr<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>> callbackStr = nullptr;
+    std::unique_ptr<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>> callbackStr = nullptr;
 
-    std::string chunk = {};
+    std::unique_ptr<std::vector<char>> buffer = nullptr;
+
     unsigned long maxRemainingBodyLength = 0;
+
     bool isCallbackForFullChunk = false;
+
+    /**
+     * It's marked from TemplatedAppObject that predefined res->onDataV2 there
+     * want to stop collecting for certain condition.
+     *
+     * At the time, this boolean belong to the TemplatedAppObject only,
+     * but if the JS handler assignment for the onData, onDataText, onDataV2, onFullData, and onFullDataText is late,
+     * we invoke the handler immediately from the `this->setProperty`.
+     */
+    bool isStopCollecting = false;
   } OnDataV2Assignee;
 
   void preEnd(facebook::jsi::Runtime &rt) const {
@@ -188,16 +197,19 @@ public:
       /// Same usage as the onDataV2
       /// except the second parameter to the JS handler is the boolean `isLast`
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
-      this->OnDataV2Assignee.callback = std::make_shared<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
+      this->OnDataV2Assignee.callback = std::make_unique<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
 
       /// This a late call
-      if(this->OnDataV2Assignee.maxRemainingBodyLength == 0) {
+      if(
+        this->OnDataV2Assignee.isStopCollecting ||
+        this->OnDataV2Assignee.maxRemainingBodyLength == 0
+      ) {
         this->OnDataV2Assignee.callback->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
                                                           [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
-          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
-
+//          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
+          auto mutableBuffer = facebook::jsi::CharsMutableBuffer(this->OnDataV2Assignee.buffer.get());
           cb.call(rt,
-                  facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringMutableBuffer>(stringMutableBuffer)),
+                  facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::CharsMutableBuffer>(std::move(mutableBuffer))),
                   this->OnDataV2Assignee.maxRemainingBodyLength == 0);
         });
       }
@@ -217,18 +229,23 @@ public:
       }
 
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
-      this->OnDataV2Assignee.callback = std::make_shared<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
+      this->OnDataV2Assignee.callback = std::make_unique<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
 
       /// This is a late call to the onDataV2 callback
-      /// due to the onDataV2 predefined lambda has finished earlier.
-      if(this->OnDataV2Assignee.maxRemainingBodyLength == 0) {
+      /// due to the onDataV2 predefined lambda has finished earlier
+      /// or isStopCollecting is already marked
+      if(
+        this->OnDataV2Assignee.buffer &&
+        (this->OnDataV2Assignee.isStopCollecting || this->OnDataV2Assignee.maxRemainingBodyLength == 0)
+      ) {
+        __android_log_print(ANDROID_LOG_INFO, "uwsserver", "onDataV2 2");
         this->OnDataV2Assignee.callback
           ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
                              [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
-          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
-
+//          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
+          auto mutableBuffer = facebook::jsi::CharsMutableBuffer(this->OnDataV2Assignee.buffer.get());
           cb.call(rt,
-                 facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringMutableBuffer>(std::move(stringMutableBuffer))),
+                 facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::CharsMutableBuffer>(std::move(mutableBuffer))),
                  facebook::jsi::BigInt::fromUint64(rt, this->OnDataV2Assignee.maxRemainingBodyLength));
         });
       }
@@ -259,17 +276,22 @@ public:
 
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
       this->OnDataV2Assignee.isCallbackForFullChunk = true;
-      this->OnDataV2Assignee.callback = std::make_shared<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
+      this->OnDataV2Assignee.callback = std::make_unique<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
 
       /// This is a late call to the onFullData callback
-      /// due to the onDataV2 predefined lambda has finished earlier.
-      if(this->OnDataV2Assignee.maxRemainingBodyLength == 0 && this->OnDataV2Assignee.callback) {
+      /// due to the onDataV2 predefined lambda has finished earlier
+      /// or isStopCollecting is already marked
+      if(
+        this->OnDataV2Assignee.buffer &&
+        (this->OnDataV2Assignee.isStopCollecting || this->OnDataV2Assignee.maxRemainingBodyLength == 0)
+      ) {
         this->OnDataV2Assignee.callback
           ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
                              [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
-          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
+//          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
+          auto mutableBuffer = facebook::jsi::CharsMutableBuffer(this->OnDataV2Assignee.buffer.get());
           cb.call(rt,
-                  facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringMutableBuffer>(std::move(stringMutableBuffer))));
+                  facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::CharsMutableBuffer>(std::move(mutableBuffer))));
         });
       }
 
@@ -289,16 +311,20 @@ public:
 
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
       this->OnDataV2Assignee.isCallbackForFullChunk = true;
-      this->OnDataV2Assignee.callbackStr = std::make_shared<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
+      this->OnDataV2Assignee.callbackStr = std::make_unique<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
 
       /// This is a late call to the onFullDataText callback
-      /// due to the onDataV2 predefined lambda has finished earlier.
-      if(this->OnDataV2Assignee.maxRemainingBodyLength == 0 && this->OnDataV2Assignee.callbackStr) {
+      /// due to the onDataV2 predefined lambda has finished earlier
+      /// or isStopCollecting is already marked
+      if(
+        this->OnDataV2Assignee.buffer &&
+        (this->OnDataV2Assignee.isStopCollecting || this->OnDataV2Assignee.maxRemainingBodyLength == 0)
+      ) {
         this->OnDataV2Assignee.callbackStr
           ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
                              [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
           cb.call(rt,
-                  this->OnDataV2Assignee.chunk);
+                  std::string(this->OnDataV2Assignee.buffer->begin(), this->OnDataV2Assignee.buffer->end()));
         });
       }
 
@@ -431,34 +457,67 @@ public:
     }
   }
 
-  void jsCall_onDataV2(std::string_view chunk,
-                       unsigned long maxRemainingBodyLength) {
-    this->OnDataV2Assignee.chunk.append(chunk.data(), chunk.size());
-    this->OnDataV2Assignee.maxRemainingBodyLength = maxRemainingBodyLength;
+  bool isStopCollectingChunk() {
+    return this->OnDataV2Assignee.isStopCollecting;
+  }
 
+  void stopCollectingChunk() {
+    this->OnDataV2Assignee.isStopCollecting = true;
+  }
+
+  void setChunk(std::string_view chunk,
+               unsigned long maxRemainingBodyLength) {
+    if(!this->OnDataV2Assignee.buffer) {
+      this->OnDataV2Assignee.buffer = std::make_unique<std::vector<char>>();
+      this->OnDataV2Assignee.buffer->reserve(maxRemainingBodyLength + chunk.size()); // preallocate with hint
+    }
+    this->OnDataV2Assignee.buffer->insert(this->OnDataV2Assignee.buffer->end(), chunk.begin(), chunk.end());
+//    this->OnDataV2Assignee.chunk.append(chunk.data(), chunk.size());
+    this->OnDataV2Assignee.maxRemainingBodyLength = maxRemainingBodyLength;
+  }
+
+  void invokeOnDataV2() {
     if(
-        !this->OnDataV2Assignee.isCallbackForFullChunk ||
-        maxRemainingBodyLength == 0
+      !this->OnDataV2Assignee.isCallbackForFullChunk ||
+      this->OnDataV2Assignee.maxRemainingBodyLength == 0
     ) {
+      /// HELP me the better way to pass JSI ArrayBuffer here.
+      /// with faster buffer or anything
+
+      /// Capturing the buffer by reference into the lambda
+      /// may not giving accurate to the JS ArrayBuffer.byteLength (due to async call)
+      /// when it's compared to the maxRemainingBodyLength that captured by value
+
+      /// While capturing the buffer by value is accurate but slower.
+
       if(this->OnDataV2Assignee.callback) {
-        this->OnDataV2Assignee.callback->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
-                                                 [this, maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
-          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
+        this->OnDataV2Assignee.callback
+          ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
+                             [buffer = &this->OnDataV2Assignee.buffer, maxRemainingBodyLength = this->OnDataV2Assignee.maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
+          //          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(chunk);
+          auto mutableBuffer = facebook::jsi::CharsMutableBuffer(buffer->get());
 
           cb.call(rt,
-                  facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringMutableBuffer>(std::move(stringMutableBuffer))),
+                  facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::CharsMutableBuffer>(std::move(mutableBuffer))),
                   facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
         });
-      } else if(this->OnDataV2Assignee.callbackStr) {
+      }
+
+      if(this->OnDataV2Assignee.callbackStr) {
         this->OnDataV2Assignee.callbackStr
           ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
-                             [this, maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
-            cb.call(rt,
-                    this->OnDataV2Assignee.chunk,
-                    facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
-          });
+                             [buffer = &this->OnDataV2Assignee.buffer, maxRemainingBodyLength = this->OnDataV2Assignee.maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
+          cb.call(rt,
+                  std::string((*buffer)->begin(), (*buffer)->end()),
+                  facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
+        });
       }
     }
+  }
+
+  size_t getChunkSize() const {
+//    return this->OnDataV2Assignee.chunk.size();
+    return this->OnDataV2Assignee.buffer->size();
   }
 
 };

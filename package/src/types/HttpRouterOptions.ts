@@ -13,7 +13,7 @@ export interface HttpRouterOptions {
 	disableBodyRead?: boolean,
 
 	/**
-	 * Limit max body data size reading in byte.
+	 * Limit max body data size reading in byte after it is accumulated with the next chunk. 1 mega bytes maxBodySize doesn't mean you will get 1 mega bytes data.
 	 * 
 	 * This is useful to help the method from `HttpResponse` object
 	 * like `onData`, `onDataV2`, and `onFullData` to limit the chunk you need to read from a request.

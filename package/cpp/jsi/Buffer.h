@@ -2,12 +2,12 @@
 
 #include <jsi/jsi.h>
 
+#include <utility>
+
 namespace facebook::jsi {
 
 // Probably bad name and usage.
-// I have to instantiate this class every onDataV2 call to create JSI Array Buffer.
-// I've tried to instantiate once, and just append the string inside with custom public append method,
-// but the app was crashed. I don't know why.
+// I can't figure it how create JS ArrayBuffer with faster buffer
 class StringMutableBuffer : public MutableBuffer {
 
 private:
@@ -23,11 +23,32 @@ public:
   }
 
   uint8_t *data() override {
-    return reinterpret_cast<uint8_t *>(this->s->data());
+    return (uint8_t *)this->s->data();
   }
 
 }; // StringMutableBuffer
 
+class CharsMutableBuffer : public MutableBuffer {
+
+private:
+  std::vector<char> *c;
+
+public:
+  CharsMutableBuffer(std::vector<char> *c) {
+    this->c = c;
+  }
+
+  size_t size() const override {
+    return this->c->size();
+  }
+
+  uint8_t *data() override {
+    return reinterpret_cast<uint8_t *>(this->c->data());
+  }
+
+};
+
+// Could we just use this for JSI ArrayBuffer?
 class StringViewBuffer : public Buffer {
 
 private:
