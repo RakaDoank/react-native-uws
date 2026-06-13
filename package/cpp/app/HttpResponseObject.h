@@ -17,9 +17,24 @@ private:
   } OnAbortedAssignee;
 
   struct {
+    /**
+     * For passing ArrayBuffer
+     * - onData
+     * - onDataV2
+     * - onFullData
+     */
     std::shared_ptr<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>> callback = nullptr;
+
+    /**
+     * For passing string
+     * - onDataText
+     * - onFullDataText
+     */
+    std::shared_ptr<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>> callbackStr = nullptr;
+
     std::string chunk = {};
     unsigned long maxRemainingBodyLength = 0;
+    bool isCallbackForFullChunk = false;
   } OnDataV2Assignee;
 
   void preEnd(facebook::jsi::Runtime &rt) const {
@@ -166,12 +181,17 @@ public:
                                                                                                     const facebook::jsi::Value &thisValue,
                                                                                                     const facebook::jsi::Value *arguments,
                                                                                                     size_t count) -> facebook::jsi::Value {
+      if(this->OnDataV2Assignee.callback) {
+        throw facebook::jsi::JSError(rt_1, "Cannot reassign onData or assign it with existing onDataV2 and/or onFullData handler");
+      }
+
       /// Same usage as the onDataV2
       /// except the second parameter to the JS handler is the boolean `isLast`
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
       this->OnDataV2Assignee.callback = std::make_shared<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
 
-      if(this->OnDataV2Assignee.maxRemainingBodyLength == 0 && this->OnDataV2Assignee.callback) {
+      /// This a late call
+      if(this->OnDataV2Assignee.maxRemainingBodyLength == 0) {
         this->OnDataV2Assignee.callback->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
                                                           [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
           auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
@@ -185,6 +205,35 @@ public:
       return facebook::jsi::Value::undefined();
     }));
 
+    this->setProperty(rt, "onDataText", facebook::jsi::Function::createFromHostFunction(rt,
+                                                                                      facebook::jsi::PropNameID::forUtf8(rt, "onDataText"),
+                                                                                      1,
+                                                                                      [this, &jsInvoker](facebook::jsi::Runtime &rt_1,
+                                                                                                         const facebook::jsi::Value &thisValue,
+                                                                                                         const facebook::jsi::Value *arguments,
+                                                                                                         size_t count) -> facebook::jsi::Value {
+      if(this->OnDataV2Assignee.callback) {
+        throw facebook::jsi::JSError(rt_1, "Cannot reassign onDataText or assign it with existing onFullDataText handler");
+      }
+
+      auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
+      this->OnDataV2Assignee.callbackStr = std::make_shared<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
+
+      /// This is a late call to the onDataText callback
+      /// due to the onDataV2 predefined lambda has finished earlier.
+      if(this->OnDataV2Assignee.maxRemainingBodyLength == 0) {
+        this->OnDataV2Assignee.callbackStr
+          ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
+                             [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
+          cb.call(rt,
+                  this->OnDataV2Assignee.chunk,
+                  facebook::jsi::BigInt::fromUint64(rt, this->OnDataV2Assignee.maxRemainingBodyLength));
+        });
+      }
+
+      return facebook::jsi::Value::undefined();
+    }));
+
     this->setProperty(rt, "onDataV2", facebook::jsi::Function::createFromHostFunction(rt,
                                                                                       facebook::jsi::PropNameID::forUtf8(rt, "onDataV2"),
                                                                                       1,
@@ -192,18 +241,23 @@ public:
                                                                                                          const facebook::jsi::Value &thisValue,
                                                                                                          const facebook::jsi::Value *arguments,
                                                                                                          size_t count) -> facebook::jsi::Value {
+      if(this->OnDataV2Assignee.callback) {
+        throw facebook::jsi::JSError(rt_1, "Cannot reassign onDataV2 or assign it with existing onData and/or onFullData handler");
+      }
+
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
       this->OnDataV2Assignee.callback = std::make_shared<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
 
       /// This is a late call to the onDataV2 callback
       /// due to the onDataV2 predefined lambda has finished earlier.
-      if(this->OnDataV2Assignee.maxRemainingBodyLength == 0 && this->OnDataV2Assignee.callback) {
-        this->OnDataV2Assignee.callback->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
-                                                 [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
-                                                   auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
+      if(this->OnDataV2Assignee.maxRemainingBodyLength == 0) {
+        this->OnDataV2Assignee.callback
+          ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
+                             [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
+          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
 
           cb.call(rt,
-                 facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringMutableBuffer>(stringMutableBuffer)),
+                 facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringMutableBuffer>(std::move(stringMutableBuffer))),
                  facebook::jsi::BigInt::fromUint64(rt, this->OnDataV2Assignee.maxRemainingBodyLength));
         });
       }
@@ -217,6 +271,65 @@ public:
 //                  facebook::jsi::BigInt::fromUint64(rt_2, maxRemainingBodyLength));
 //        });
 //      });
+
+      return facebook::jsi::Value::undefined();
+    }));
+
+    this->setProperty(rt, "onFullData", facebook::jsi::Function::createFromHostFunction(rt,
+                                                                                      facebook::jsi::PropNameID::forUtf8(rt, "onFullData"),
+                                                                                      1,
+                                                                                      [this, &jsInvoker](facebook::jsi::Runtime &rt_1,
+                                                                                                         const facebook::jsi::Value &thisValue,
+                                                                                                         const facebook::jsi::Value *arguments,
+                                                                                                         size_t count) -> facebook::jsi::Value {
+      if(this->OnDataV2Assignee.callback) {
+        throw facebook::jsi::JSError(rt_1, "Cannot reassign onFullData or assign it with existing onData and/or onDataV2 handler");
+      }
+
+      auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
+      this->OnDataV2Assignee.isCallbackForFullChunk = true;
+      this->OnDataV2Assignee.callback = std::make_shared<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
+
+      /// This is a late call to the onFullData callback
+      /// due to the onDataV2 predefined lambda has finished earlier.
+      if(this->OnDataV2Assignee.maxRemainingBodyLength == 0 && this->OnDataV2Assignee.callback) {
+        this->OnDataV2Assignee.callback
+          ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
+                             [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
+          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
+          cb.call(rt,
+                  facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringMutableBuffer>(std::move(stringMutableBuffer))));
+        });
+      }
+
+      return facebook::jsi::Value::undefined();
+    }));
+
+    this->setProperty(rt, "onFullDataText", facebook::jsi::Function::createFromHostFunction(rt,
+                                                                                        facebook::jsi::PropNameID::forUtf8(rt, "onFullDataText"),
+                                                                                        1,
+                                                                                        [this, &jsInvoker](facebook::jsi::Runtime &rt_1,
+                                                                                                           const facebook::jsi::Value &thisValue,
+                                                                                                           const facebook::jsi::Value *arguments,
+                                                                                                           size_t count) -> facebook::jsi::Value {
+      if(this->OnDataV2Assignee.callback) {
+        throw facebook::jsi::JSError(rt_1, "Cannot reassign onFullDataText or assign it with existing onDataText handler");
+      }
+
+      auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
+      this->OnDataV2Assignee.isCallbackForFullChunk = true;
+      this->OnDataV2Assignee.callbackStr = std::make_shared<facebook::react::AsyncCallback<facebook::jsi::Value, facebook::jsi::Value>>(rt_1, std::move(callback), jsInvoker);
+
+      /// This is a late call to the onFullDataText callback
+      /// due to the onDataV2 predefined lambda has finished earlier.
+      if(this->OnDataV2Assignee.maxRemainingBodyLength == 0 && this->OnDataV2Assignee.callbackStr) {
+        this->OnDataV2Assignee.callbackStr
+          ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
+                             [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
+          cb.call(rt,
+                  this->OnDataV2Assignee.chunk);
+        });
+      }
 
       return facebook::jsi::Value::undefined();
     }));
@@ -352,15 +465,28 @@ public:
     this->OnDataV2Assignee.chunk.append(chunk.data(), chunk.size());
     this->OnDataV2Assignee.maxRemainingBodyLength = maxRemainingBodyLength;
 
-    if(this->OnDataV2Assignee.callback) {
-      this->OnDataV2Assignee.callback->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
-                                               [this, maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
-        auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
+    if(
+        !this->OnDataV2Assignee.isCallbackForFullChunk ||
+        maxRemainingBodyLength == 0
+    ) {
+      if(this->OnDataV2Assignee.callback) {
+        this->OnDataV2Assignee.callback->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
+                                                 [this, maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
+          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
 
-        cb.call(rt,
-                facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringMutableBuffer>(std::move(stringMutableBuffer))),
-                facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
-      });
+          cb.call(rt,
+                  facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringMutableBuffer>(std::move(stringMutableBuffer))),
+                  facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
+        });
+      } else if(this->OnDataV2Assignee.callbackStr) {
+        this->OnDataV2Assignee.callbackStr
+          ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
+                             [this, maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
+            cb.call(rt,
+                    this->OnDataV2Assignee.chunk,
+                    facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
+          });
+      }
     }
   }
 

@@ -142,6 +142,19 @@ export interface HttpResponse {
 	) : void,
 
 	/**
+	 * Similar to `onDataV2`, but it is for reading HTTP request body data in raw text.
+	 * 
+	 * This is an alternative method to read ArrayBuffer chunk in string because the TextDecoder is
+	 * missing in React Native 0.84 and older.
+	 */
+	onDataText(
+		handler: (
+			chunk: string,
+			maxRemainingBodyLength: bigint,
+		) => void,
+	) : void,
+
+	/**
 	 * Handler for reading HTTP request body data. V2.
 	 * 
 	 * Must be attached before performing any asynchronous operation, otherwise data may be lost.
@@ -166,42 +179,54 @@ export interface HttpResponse {
 		) => void,
 	) : void,
 
-	// /**
-	//  * Handler for reading HTTP request body data only when all the body data has been retrieved,
-	//  * or the body size has reached the `maxBodySize` limit from your route handler options.
-	//  * A good case for a simple route handler that only needs to read complete body data.
-	//  * 
-	//  * Not like the `onData` and `onDataV2`, this is a good option to save a bit of operation cost
-	//  * because react-native-uws passes an ArrayBuffer from C++ to JS only once when it is finished.
-	//  * 
-	//  * This is an equivalent of `res.collectBody()` method from uWebSockets.js for Node.js,
-	//  * but to set max byte of body size, you have to set it through router options at the third arguments.
-	//  * 
-	//  * @example
-	//  * ```
-	//  * app.post("/create", (res, req) => {
-	//  *   let isAborted = false
-	//  *   res.onAborted(() => {
-	//  *     isAborted = true
-	//  *   })
-	//  * 
-	//  *   if(!isAborted) {
-	//  *     res.onFullData(chunk => {
-	//  *       if(!isAborted) {
-	//  *         res.end(`Body size is ${chunk.byteLength}`)
-	//  *       }
-	//  *     })
-	//  *   }
-	//  * }, {
-	//  *   maxBodySize: 1024 * 1024, // 1MB in byte
-	//  * })
-	//  * ```
-	//  */
-	// onFullData(
-	// 	handler: (
-	// 		chunk: ArrayBuffer,
-	// 	) => void,
-	// ) : void,
+	/**
+	 * Handler for reading HTTP request body data only when all the body data has been retrieved,
+	 * or the body size has reached the `maxBodySize` limit from your route handler options.
+	 * A good case for a simple route handler that only needs to read complete body data.
+	 * 
+	 * Not like the `onData` and `onDataV2`, this is a good option to save a bit of operation cost
+	 * because react-native-uws passes an ArrayBuffer from C++ to JS only once when it is finished.
+	 * 
+	 * This is an equivalent of `res.collectBody()` method from uWebSockets.js for Node.js,
+	 * but to set max byte of body size, you have to set it through router options at the third arguments.
+	 * 
+	 * @example
+	 * ```
+	 * app.post("/create", (res, req) => {
+	 *   let isAborted = false
+	 *   res.onAborted(() => {
+	 *     isAborted = true
+	 *   })
+	 * 
+	 *   if(!isAborted) {
+	 *     res.onFullData(chunk => {
+	 *       if(!isAborted) {
+	 *         res.end(`Body size is ${chunk.byteLength}`)
+	 *       }
+	 *     })
+	 *   }
+	 * }, {
+	 *   maxBodySize: 1024 * 1024, // 1MB in byte
+	 * })
+	 * ```
+	 */
+	onFullData(
+		handler: (
+			chunk: ArrayBuffer,
+		) => void,
+	) : void,
+
+	/**
+	 * Similar to `onFullData`, but it is for reading HTTP request body data in raw text.
+	 * 
+	 * This is an alternative method to read ArrayBuffer chunk in string because the TextDecoder is
+	 * missing in React Native 0.84 and older.
+	 */
+	onFullDataText(
+		handler: (
+			chunk: string,
+		) => void,
+	) : void,
 
 	// TODO
 	// Implement it later.

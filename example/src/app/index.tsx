@@ -83,29 +83,64 @@ export default function Page() {
 		})
 
 		app.post("/ondata", res => {
-			console.log("/ondata")
-			res.onData((chunk, isLast) => {
-				console.log("ondata", chunk.byteLength, isLast)
+			res.onDataV2((chunk, isLast) => {
 				if(isLast) {
-					const textDecoder = new TextDecoder("utf-8");
-					const resultString = textDecoder.decode(chunk)
-					console.log("result string ", resultString)
-					res.end("finished")
+					res.writeHeader("content-type", "application/json")
+					res.end(
+						JSON.stringify({
+							type: "onData",
+							byteLength: chunk.byteLength,
+						}),
+					)
 				}
 			})
 		})
 
 		app.post("/ondatav2", (res) => {
 			res.onDataV2((chunk, maxRemainingBodyLength) => {
-				console.log("onDataV2 JS", chunk.byteLength, maxRemainingBodyLength)
-
 				if(!maxRemainingBodyLength) {
 					res.writeHeader("content-type", "application/json")
 					res.end(
 						JSON.stringify({
-							uploaded: true,
+							type: "onDataV2",
+							byteLength: chunk.byteLength,
 						}),
 					)
+				}
+			})
+		})
+
+		// TextDecoder is supported only for React Native 0.85 and latest
+		app.post("/read-json-from-arraybuffer", res => {
+			res.onFullData(chunk => {
+				const textDecoder = new TextDecoder("utf-8")
+				const text = textDecoder.decode(chunk)
+				try {
+					const json = JSON.parse(text) as unknown
+
+					// send it back in JSON
+					res.writeHeader("content-type", "application/json")
+					res.end(
+						JSON.stringify(json),
+					)
+				} catch {
+					res.end("not valid data")
+				}
+			})
+		})
+
+		app.post("/read-json-from-text", res => {
+			res.onFullDataText(chunk => {
+				try {
+					const json = JSON.parse(chunk) as unknown
+
+					// send it back in JSON
+					res.writeHeader("content-type", "application/json")
+					res.end(
+						JSON.stringify(json),
+					)
+				} catch {
+					res.end("not valid data")
 				}
 			})
 		})
