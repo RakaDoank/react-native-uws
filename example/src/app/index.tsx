@@ -217,6 +217,62 @@ export default function Page() {
 			}
 		})
 
+		app.post("/get-form-data", (res, req) => {
+			const requestContentType = req.getHeader("content-type")
+			console.log("get-form-data", requestContentType)
+
+			res.onFullData(chunk => {
+				res.writeHeader("content-type", "application/json")
+
+				try {
+					// not a multipart form data
+					if(!requestContentType.startsWith("multipart/form-data")) {
+						throw new Error();
+					}
+
+					const multipartField = uWS.getParts(chunk, requestContentType);
+
+					if(multipartField?.length) {
+						const textDecoder = new TextDecoder("utf-8")
+						const text1Part = multipartField.find(p => p.name == "text1")
+
+						let text1 = ""
+
+						if(text1Part) {
+							text1 = textDecoder.decode(text1Part.data)
+						}
+
+						res.end(
+							JSON.stringify({
+								fields: multipartField.map(field => {
+									return {
+										_byteLength: field.data.byteLength,
+										name: field.name,
+										filename: field.filename,
+										type: field.type,
+									}
+								}),
+								decodedFields: {
+									text1,
+								},
+								success: true,
+							}),
+						)
+					} else {
+						throw new Error()
+					}
+				} catch {
+					res.writeHeader("content-type", "application/json")
+					res.end(
+						JSON.stringify({
+							data: null,
+							success: false,
+						}),
+					)
+				}
+			})
+		})
+
 		app.listen(5000, token => {
 			if(token) {
 				console.log("Listening at 5000")

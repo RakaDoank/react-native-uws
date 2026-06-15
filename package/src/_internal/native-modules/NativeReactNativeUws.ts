@@ -16,9 +16,13 @@ export interface Spec extends TurboModule {
 	) => CodegenTypes.UnsafeObject,
 
 	getParts: (
+		/**
+		 * Has to be an ArrayBuffer.
+		 * Codegen map this to facebook::jsi::Object.
+		 */
 		body: unknown,
 		contentType: string,
-	) => CodegenTypes.UnsafeObject,
+	) => unknown, // Codegen map this to facebook::jsi::Object
 
 	_us_listen_socket_close: (
 		id: CodegenTypes.Int32,

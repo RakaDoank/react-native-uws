@@ -8,6 +8,7 @@ namespace facebook::jsi {
 
 // Probably bad name and usage.
 // I can't figure it how create JS ArrayBuffer with faster buffer
+
 class StringMutableBuffer : public MutableBuffer {
 
 private:
@@ -52,7 +53,6 @@ public:
 
 };
 
-// Could we just use this for JSI ArrayBuffer?
 class StringViewBuffer : public Buffer {
 
 private:
@@ -70,5 +70,23 @@ public:
   }
 
 }; // StringViewBuffer
+
+class StringViewMutableBuffer : public MutableBuffer {
+
+private:
+  std::string sv;
+
+public:
+  StringViewMutableBuffer(std::string_view sv) : sv(sv) {}
+
+  size_t size() const override {
+    return this->sv.size();
+  }
+
+  uint8_t *data() override {
+    return reinterpret_cast<uint8_t *>(this->sv.data());
+  }
+
+};
 
 } // namespace facebook::jsi
