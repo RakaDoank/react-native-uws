@@ -8,7 +8,4 @@
  */
 export type RecognizedString =
 	| string
-
-// TODO
-// We need to implement it later until React Native is stable to support `ArrayBuffer`
-// | ArrayBuffer
+	| ArrayBuffer

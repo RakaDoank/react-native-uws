@@ -72,9 +72,10 @@ export default function Page() {
 					forEach: headers,
 					getCaseSensitiveMethod: req.getCaseSensitiveMethod(),
 					getHeader: req.getHeader("connection"),
-					getParameter: `${req.getParameter(0)} | ${req.getParameter("foo")} | ${req.getParameter(1)} | ${req.getParameter("bar")}`,
+					getParameter: `${req.getParameter(0)} - ${req.getParameter("foo")} | ${req.getParameter(1)} - ${req.getParameter("bar")}`,
 					getMethod: req.getMethod(),
 					getUrl: req.getUrl(),
+					getQuery: req.getQuery() || null,
 				}),
 			)
 		})

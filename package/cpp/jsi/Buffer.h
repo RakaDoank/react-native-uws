@@ -1,15 +1,14 @@
 #pragma once
 
 #include <jsi/jsi.h>
-
 #include <utility>
 
-namespace facebook::jsi {
+namespace react_native_uws {
 
 // Probably bad name and usage.
 // I can't figure it how create JS ArrayBuffer with faster buffer
 
-class StringMutableBuffer : public MutableBuffer {
+class StringMutableBuffer : public facebook::jsi::MutableBuffer {
 
 private:
   std::string *s;
@@ -29,7 +28,7 @@ public:
 
 }; // StringMutableBuffer
 
-class CharsMutableBuffer : public MutableBuffer {
+class CharsMutableBuffer : public facebook::jsi::MutableBuffer {
 
 private:
   std::vector<char> *c;
@@ -53,7 +52,7 @@ public:
 
 };
 
-class StringViewBuffer : public Buffer {
+class StringViewBuffer : public facebook::jsi::Buffer {
 
 private:
   std::string_view sv;
@@ -71,7 +70,7 @@ public:
 
 }; // StringViewBuffer
 
-class StringViewMutableBuffer : public MutableBuffer {
+class StringViewMutableBuffer : public facebook::jsi::MutableBuffer {
 
 private:
   std::string sv;

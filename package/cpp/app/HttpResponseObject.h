@@ -4,6 +4,7 @@
 #include <jsi/jsi.h>
 #include <utility>
 #include <uWebSockets/HttpResponse.h>
+#include "RecognizedString.h"
 
 namespace react_native_uws {
 
@@ -105,8 +106,8 @@ public:
         return {rt_1, thisValue};
       }
 
-      auto body = arguments[0].asString(rt_1).utf8(rt_1);
-      res->end(std::move(body));
+      auto body = RecognizedString(rt_1, arguments[0]).getStringView();
+      res->end(body);
 
       return {rt_1, thisValue};
     }));
@@ -221,9 +222,9 @@ public:
         this->OnDataV2Assignee.callback->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
                                                           [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
 //          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
-          auto mutableBuffer = facebook::jsi::CharsMutableBuffer(this->OnDataV2Assignee.buffer.get());
+          auto mutableBuffer = CharsMutableBuffer(this->OnDataV2Assignee.buffer.get());
           cb.call(rt,
-                  facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::CharsMutableBuffer>(std::move(mutableBuffer))),
+                  facebook::jsi::ArrayBuffer(rt, std::make_shared<CharsMutableBuffer>(std::move(mutableBuffer))),
                   this->OnDataV2Assignee.maxRemainingBodyLength == 0);
         });
       }
@@ -252,14 +253,13 @@ public:
         this->OnDataV2Assignee.buffer &&
         (this->OnDataV2Assignee.isStopCollecting || this->OnDataV2Assignee.maxRemainingBodyLength == 0)
       ) {
-        __android_log_print(ANDROID_LOG_INFO, "uwsserver", "onDataV2 2");
         this->OnDataV2Assignee.callback
           ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
                              [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
 //          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
-          auto mutableBuffer = facebook::jsi::CharsMutableBuffer(this->OnDataV2Assignee.buffer.get());
+          auto mutableBuffer = CharsMutableBuffer(this->OnDataV2Assignee.buffer.get());
           cb.call(rt,
-                 facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::CharsMutableBuffer>(std::move(mutableBuffer))),
+                 facebook::jsi::ArrayBuffer(rt, std::make_shared<CharsMutableBuffer>(std::move(mutableBuffer))),
                  facebook::jsi::BigInt::fromUint64(rt, this->OnDataV2Assignee.maxRemainingBodyLength));
         });
       }
@@ -303,9 +303,9 @@ public:
           ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
                              [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
 //          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
-          auto mutableBuffer = facebook::jsi::CharsMutableBuffer(this->OnDataV2Assignee.buffer.get());
+          auto mutableBuffer = CharsMutableBuffer(this->OnDataV2Assignee.buffer.get());
           cb.call(rt,
-                  facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::CharsMutableBuffer>(std::move(mutableBuffer))));
+                  facebook::jsi::ArrayBuffer(rt, std::make_shared<CharsMutableBuffer>(std::move(mutableBuffer))));
         });
       }
 
@@ -383,7 +383,7 @@ public:
         return {rt_1, thisValue};
       }
 
-      auto fullBodyOrChunk = arguments[0].asString(rt_1).utf8(rt_1);
+      auto fullBodyOrChunk = RecognizedString(rt_1, arguments[0]).getStringView();
       auto totalSize = arguments[1].asNumber();
 
       auto tryEndResult = res->tryEnd(fullBodyOrChunk, static_cast<uintmax_t>(totalSize));
@@ -438,8 +438,8 @@ public:
                                                                                                const facebook::jsi::Value &thisValue,
                                                                                                const facebook::jsi::Value *arguments,
                                                                                                size_t count) -> facebook::jsi::Value {
-      auto chunk = arguments[0].asString(rt_1).utf8(rt_1);
-      return res->write(std::string_view(std::move(chunk)));
+      auto chunk = RecognizedString(rt_1, arguments[0]).getStringView();
+      return res->write(std::string_view(chunk));
     }));
 
     this->setProperty(rt, "writeHeader", facebook::jsi::Function::createFromHostFunction(rt,
@@ -449,9 +449,9 @@ public:
                                                                                                const facebook::jsi::Value &thisValue,
                                                                                                const facebook::jsi::Value *arguments,
                                                                                                size_t count) -> facebook::jsi::Value {
-      auto headerKey = arguments[0].asString(rt_1).utf8(rt_1);
-      auto headerVal = arguments[1].asString(rt_1).utf8(rt_1);
-      res->writeHeader(std::move(headerKey), std::move(headerVal));
+      auto headerKey = RecognizedString(rt_1, arguments[0]).getStringView();
+      auto headerVal = RecognizedString(rt_1, arguments[1]).getStringView();
+      res->writeHeader(headerKey, headerVal);
 
       return {rt_1, thisValue};
     }));
@@ -463,8 +463,8 @@ public:
                                                                                        const facebook::jsi::Value &thisValue,
                                                                                        const facebook::jsi::Value *arguments,
                                                                                        size_t count) -> facebook::jsi::Value {
-      auto status = arguments[0].asString(rt_1).utf8(rt_1);
-      res->writeStatus(std::move(status));
+      auto status = RecognizedString(rt_1, arguments[0]).getStringView();
+      res->writeStatus(status);
 
       return {rt_1, thisValue};
     }));
@@ -478,7 +478,7 @@ public:
     }
   }
 
-  bool isStopCollectingChunk() {
+  bool isStopCollectingChunk() const {
     return this->OnDataV2Assignee.isStopCollecting;
   }
 
@@ -519,10 +519,10 @@ public:
         this->OnDataV2Assignee.callback
           ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
                              [buffer = this->OnDataV2Assignee.buffer, maxRemainingBodyLength = this->OnDataV2Assignee.maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
-          auto mutableBuffer = facebook::jsi::CharsMutableBuffer(buffer);
+          auto mutableBuffer = CharsMutableBuffer(buffer);
 
           cb.call(rt,
-                  facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::CharsMutableBuffer>(std::move(mutableBuffer))),
+                  facebook::jsi::ArrayBuffer(rt, std::make_shared<CharsMutableBuffer>(std::move(mutableBuffer))),
                   facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
         });
       }

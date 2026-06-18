@@ -92,7 +92,7 @@ facebook::jsi::Object ReactNativeUwsModule::getParts(facebook::jsi::Runtime &rt,
 
       partObj.setProperty(rt,
                           "data",
-                          facebook::jsi::ArrayBuffer(rt, std::make_shared<facebook::jsi::StringViewMutableBuffer>(part)));
+                          facebook::jsi::ArrayBuffer(rt, std::make_shared<react_native_uws::StringViewMutableBuffer>(part)));
 
       for(int i = 0; headers[i].first.length(); i++) {
         if(headers[i].first == "content-type") {

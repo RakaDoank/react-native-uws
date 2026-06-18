@@ -5,6 +5,7 @@
 #include <cmath>
 #include <jsi/jsi.h>
 #include <uWebSockets/HttpContextData.h>
+#include "RecognizedString.h"
 
 namespace react_native_uws {
 
@@ -64,8 +65,8 @@ public:
                                                                             const facebook::jsi::Value &thisValue,
                                                                             const facebook::jsi::Value *arguments,
                                                                             size_t count) -> facebook::jsi::Value {
-      auto lowerCasedHeader = arguments[0].asString(rt_1).utf8(rt_1);
-      auto result = req->getHeader(std::string_view(lowerCasedHeader));
+      auto lowerCasedHeader = RecognizedString(rt_1, arguments[0]).getStringView();
+      auto result = req->getHeader(lowerCasedHeader);
       return facebook::jsi::String::createFromUtf8(rt_1,
                                                    std::string(result));
     }));
@@ -134,7 +135,7 @@ public:
         /// get by name
         /// Do we really need std::unordered_map for the faster lookup here?
 
-        auto _it = std::find_if(this->parameters.begin(), this->parameters.end(), [key = arguments[0].asString(rt_1).utf8(rt_1)](auto &item) -> bool {
+        auto _it = std::find_if(this->parameters.begin(), this->parameters.end(), [key = RecognizedString(rt_1, arguments[0]).getString()](auto &item) -> bool {
           return item.first == key;
         });
         if(_it != this->parameters.end()) {

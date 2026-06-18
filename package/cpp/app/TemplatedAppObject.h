@@ -1,6 +1,5 @@
 #pragma once
 
-#include <android/log.h>
 #include <ReactCommon/CallInvoker.h>
 #include <ReactCommon/SchedulerPriority.h>
 #include <algorithm>
@@ -343,8 +342,8 @@ public:
                                                                                    const facebook::jsi::Value &thisValue,
                                                                                    const facebook::jsi::Value *arguments,
                                                                                    size_t count) -> facebook::jsi::Value {
-      auto topic = arguments[0].asString(rt_1).utf8(rt_1);
-      return static_cast<int>(appRunner.app.numSubscribers(std::string_view(topic)));
+      auto topic = RecognizedString(rt_1, arguments[0]).getStringView();
+      return static_cast<int>(appRunner.app.numSubscribers(topic));
     }));
 
     this->setProperty(rt,
@@ -356,14 +355,8 @@ public:
                                                                                    const facebook::jsi::Value &thisValue,
                                                                                    const facebook::jsi::Value *arguments,
                                                                                    size_t count) -> facebook::jsi::Value {
-      if(!arguments ||
-         !arguments[0].isString() ||
-         !arguments[1].isString()) {
-        return false;
-      }
-
-      auto topic = arguments[0].asString(rt_1).utf8(rt_1);
-      auto message = arguments[1].asString(rt_1).utf8(rt_1);
+      auto topic = RecognizedString(rt_1, arguments[0]).getStringView();
+      auto message = RecognizedString(rt_1, arguments[1]).getStringView();
 
       bool isBinary = false;
       if(arguments[2].isBool()) {
@@ -375,8 +368,8 @@ public:
         compress = arguments[3].asBool();
       }
 
-      return appRunner.app.publish(std::string_view(topic),
-                             std::string_view(message),
+      return appRunner.app.publish(topic,
+                             message,
                              isBinary ? uWS::OpCode::BINARY : uWS::TEXT,
                              compress);
     }));
