@@ -1,39 +1,49 @@
 #!/usr/bin/env node
 
-import node_childProcess from "node:child_process"
-import node_fs from "node:fs"
 import node_path from "node:path"
 
-import {
-	prepack,
-} from "./_prepack.mjs"
+import * as argparse from "argparse"
 
 const
-	rootDir =
-		node_path.join(import.meta.dirname, "..", "..")
+	workspaceDir =
+		node_path.join(import.meta.dirname, "..", ".."),
+
+	argumentParser =
+		new argparse.ArgumentParser(),
+
+	commandParsers =
+		argumentParser.add_subparsers({
+			dest: "command",
+			required: true,
+		})
+
+commandParsers.add_parser("bob", {
+	help: "Bob the package",
+})
+
+commandParsers.add_parser("uws-mod", {
+	help: "Clone uSockets and uWebSockets C++ files",
+})
+
+const
+	args =
+		argumentParser.parse_args()
 
 try {
-	await prepack(rootDir)
+	if(args.command == "bob") {
 
-	const libPath = node_path.join(rootDir, "package", "lib")
+		const { bob } = await import("./_bob/index.mjs")
+		bob(workspaceDir)
 
-	if(node_fs.existsSync(libPath)) {
-		node_fs.rmSync(
-			libPath,
-			{
-				recursive: true,
-				force: true,
-			},
-		)
+	} else if(args.command == "uws-mod") {
+
+		const { uws_mod } = await import("./_uws-mod.mjs")
+		uws_mod(workspaceDir)
+
+	} else {
+
+		throw new Error("Unspecified command")
 	}
-
-	node_childProcess.execSync(
-		"npx bob build",
-		{
-			cwd: node_path.join(rootDir, "package-builder"),
-			stdio: "inherit",
-		},
-	)
 
 } catch(err) {
 

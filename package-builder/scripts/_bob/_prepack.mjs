@@ -3,13 +3,13 @@ import node_path from "node:path"
 
 import SemverValid from "semver/functions/valid.js"
 
-import ReactNativeUwsPackageJson from "../../package/package.json" with { type: "json" }
+import ReactNativeUwsPackageJson from "../../../package/package.json" with { type: "json" }
 
 /**
- * @param {string} rootDir 
+ * @param {string} workspaceDir 
  */
 export async function prepack(
-	rootDir,
+	workspaceDir,
 ) {
 
 	{
@@ -22,7 +22,7 @@ export async function prepack(
 			throw new TypeError("Library version is not a valid semver")
 		}
 
-		const filePath = node_path.join(rootDir, "package", "src", "_internal", "const", "echo", "version.ts")
+		const filePath = node_path.join(workspaceDir, "package", "src", "_internal", "const", "echo", "version.ts")
 
 		if(!node_fs.existsSync(filePath)) {
 			throw new Error(`${filePath} doesn't exist`)
@@ -47,12 +47,12 @@ export async function prepack(
 			filesToCopy =
 				[
 					{
-						src: node_path.join(rootDir, "LICENSE"),
-						dest: node_path.join(rootDir, "package", "LICENSE"),
+						src: node_path.join(workspaceDir, "LICENSE"),
+						dest: node_path.join(workspaceDir, "package", "LICENSE"),
 					},
 					{
-						src: node_path.join(rootDir, "README.md"),
-						dest: node_path.join(rootDir, "package", "README.md"),
+						src: node_path.join(workspaceDir, "README.md"),
+						dest: node_path.join(workspaceDir, "package", "README.md"),
 					},
 				]
 

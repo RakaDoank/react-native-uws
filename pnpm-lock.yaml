@@ -142,6 +142,12 @@ importers:
 
   package-builder:
     devDependencies:
+      '@types/argparse':
+        specifier: 2.0.17
+        version: 2.0.17
+      argparse:
+        specifier: 2.0.1
+        version: 2.0.1
       react-native-builder-bob:
         specifier: 0.41.0
         version: 0.41.0
@@ -1562,6 +1568,9 @@ packages:
 
   '@tybys/wasm-util@0.10.2':
     resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
+
+  '@types/argparse@2.0.17':
+    resolution: {integrity: sha512-fueJssTf+4dW4HODshEGkIZbkLKHzgu1FvCI4cTc/MKum/534Euo3SrN+ilq8xgyHnOjtmg33/hee8iXLRg1XA==}
 
   '@types/aria-query@5.0.4':
     resolution: {integrity: sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==}
@@ -6881,6 +6890,8 @@ snapshots:
     dependencies:
       tslib: 2.8.1
     optional: true
+
+  '@types/argparse@2.0.17': {}
 
   '@types/aria-query@5.0.4': {}
 
