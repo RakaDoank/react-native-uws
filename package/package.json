@@ -5,7 +5,11 @@
 	"license": "MIT",
 	"author": "RakaDoank <rakaaudira@gmail.com> (https://github.com/RakaDoank)",
 	"homepage": "https://github.com/RakaDoank/react-native-uws",
-	"repository": "https://github.com/RakaDoank/react-native-uws",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/RakaDoank/react-native-uws.git",
+		"directory": "package"
+	},
 	"keywords": [
 		"react-native-uws",
 		"uwebsockets",
