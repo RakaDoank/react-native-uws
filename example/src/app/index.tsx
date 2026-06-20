@@ -220,7 +220,6 @@ export default function Page() {
 
 		app.post("/get-form-data", (res, req) => {
 			const requestContentType = req.getHeader("content-type")
-			console.log("get-form-data", requestContentType)
 
 			res.onFullData(chunk => {
 				res.writeHeader("content-type", "application/json")
