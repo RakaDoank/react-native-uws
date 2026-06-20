@@ -497,6 +497,9 @@ public:
     this->OnDataV2Assignee.maxRemainingBodyLength = maxRemainingBodyLength;
   }
 
+  /**
+   * Probably bad name, it's used either for "onData", "onDataV2", or "onFullData", and combined for "onFullDataText"
+   */
   void invokeOnDataV2() {
     if(
       !this->OnDataV2Assignee.isCallbackForFullChunk ||
@@ -507,13 +510,13 @@ public:
 
       /// I have tested that,
       /// when we captured the buffer by reference into the lambda,
-      /// in the middle of stream, it is often giving inaccruacy of
-      /// JS ArrayBuffer.byteLength in the `onDataV2` argument (due to async call)
+      /// in the middle of stream, it is often giving inaccuracy of
+      /// JS ArrayBuffer.byteLength in the `onDataV2` argument
       /// when it's compared to the maxRemainingBodyLength differentiation that captured by value.
       /// It's still accurate when it's finished.
 
       /// While capturing the buffer by value is often accurate.
-      /// but is it slower because of heap allocation?
+      /// but is it slower?
 
       if(this->OnDataV2Assignee.callback) {
         this->OnDataV2Assignee.callback
