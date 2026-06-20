@@ -3,7 +3,7 @@
 #include <optional>
 #include <mutex>
 #include <thread>
-#include <uWebSockets/App.h>
+#include "uWebSockets/App.h"
 
 namespace react_native_uws {
 
