@@ -31,7 +31,10 @@ jobs:
         run: npm run code-check
       - name: Build Package
         run: |
-          npm run package-builder
+          npm run package-builder bob
+      - name: UWS Mod
+        run: |
+          npm run package-builder uws-mod
       - name: Release to npm registry
         run: |
           node ./scripts/release.mjs
