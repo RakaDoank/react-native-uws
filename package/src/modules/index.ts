@@ -1,6 +1,6 @@
 export * from "./App"
-export * from "./CompressOptions"
-export * from "./EnvironmentVariables"
+// export * from "./CompressOptions"
+// export * from "./EnvironmentVariables"
 export * from "./ListenOptions"
 // export * from "./SSLApp"
 export * from "./getParts"
