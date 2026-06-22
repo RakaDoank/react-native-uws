@@ -13,7 +13,8 @@ class HttpRequestObject : public facebook::jsi::Object {
 
 public:
   HttpRequestObject(facebook::jsi::Runtime &rt,
-                    uWS::HttpRequest *pReq) : facebook::jsi::Object(rt) {
+                    uWS::HttpRequest *pReq,
+                    std::shared_ptr<facebook::react::CallInvoker> &jsInvoker) : facebook::jsi::Object(rt) {
 
     /// Without shared pointer
     /// uWS::HttpRequest returns weird behaviour for some methods like
@@ -25,17 +26,19 @@ public:
                       facebook::jsi::Function::createFromHostFunction(rt,
                                                                       facebook::jsi::PropNameID::forUtf8(rt, "forEach"),
                                                                       1,
-                                                                      [req](facebook::jsi::Runtime &rt_1,
+                                                                      [req, &jsInvoker](facebook::jsi::Runtime &rt_1,
                                                                             const facebook::jsi::Value &thisValue,
                                                                             const facebook::jsi::Value *arguments,
                                                                             size_t count) -> facebook::jsi::Value {
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
       std::for_each(req->begin(),
                     req->end(),
-                    [&rt_1, callback_ = std::move(callback)](const auto &item) {
-                      callback_.call(rt_1,
-                                     facebook::jsi::String::createFromUtf8(rt_1, std::string(item.first)),
-                                     facebook::jsi::String::createFromUtf8(rt_1, std::string(item.second)));
+                    [asyncCallback = facebook::react::AsyncCallback(rt_1, std::move(callback), jsInvoker)](const auto &item) {
+        asyncCallback.call([item_ = std::move(item)](facebook::jsi::Runtime &rt_2, facebook::jsi::Function &cb) {
+          cb.call(rt_2,
+                  facebook::jsi::String::createFromUtf8(rt_2, std::string(item_.first)),
+                  facebook::jsi::String::createFromUtf8(rt_2, std::string(item_.second)));
+        });
       });
       return facebook::jsi::Value::undefined();
     }));
