@@ -63,9 +63,9 @@ There are development and research things that you can read for your information
 
 ### Performance & Stability
 
-This library is indeed focusing on performance, but we will focus more of it later until we reach the stability of uws-react-native due to [threading](#threading) issue. It does not mean uws-react-native will performs badly in terms of performance speed, but it is not stable enough in under a stress situation because we run uWebSockets only in one thread.
+This library is indeed focusing on performance, but we will focus more of it later until we reach the stability of uws-react-native due to [threading](#threading) issue. It does not mean uws-react-native will performs badly in terms of speed, but it is not stable enough in under a stress situation because we run uWebSockets only in one thread.
 
-I have tested a stress test in an Android device. A lot of incoming request roughly 100 requests per second in roughly 5 seconds for files uploading (multipart/form-data) may crash the app. We do not have the proper benchmark yet, but it is as I expected from one thread only. I am keeping my eyes on this issue to keep improving this stress test.
+I have tested a stress test in an Android device. A lot of incoming request roughly 100 requests per second in roughly 5 seconds for files uploading (multipart/form-data) may crash the app. We do not have the proper benchmark yet, but it is as we expected from one thread only. I am keeping my eyes on this issue to keep improving the performance.
 
 ### Threading
 
