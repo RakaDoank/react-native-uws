@@ -8,10 +8,10 @@
 
 namespace uws_react_native {
 
-struct HttpResponseObjectOptions {
-  bool disableBodyRead;
-  unsigned long maxBodySize;
-};
+// struct HttpResponseObjectOptions {
+//   bool disableBodyRead;
+//   unsigned long maxBodySize;
+// };
 
 class HttpResponseObject : public facebook::jsi::Object {
 
@@ -52,63 +52,6 @@ private:
     bool isStopCollecting = false;
   } OnDataV2Assignee;
 
-  void setChunk(std::string_view chunk,
-                unsigned long maxRemainingBodyLength) {
-    if(!this->OnDataV2Assignee.buffer) {
-      this->OnDataV2Assignee.buffer = std::make_shared<std::vector<char>>();
-      this->OnDataV2Assignee.buffer->reserve(maxRemainingBodyLength + chunk.size()); // preallocate with hint
-    }
-    this->OnDataV2Assignee.buffer->insert(this->OnDataV2Assignee.buffer->end(), chunk.begin(), chunk.end());
-//    this->OnDataV2Assignee.chunk.append(chunk.data(), chunk.size());
-    this->OnDataV2Assignee.maxRemainingBodyLength = maxRemainingBodyLength;
-  }
-
-  /**
-   * Probably bad name,
-   * it's used either for "onData", "onDataV2", or "onFullData", and combined for "onFullDataText"
-   */
-  void invokeOnDataHandler() {
-    if(
-      !this->OnDataV2Assignee.isCallbackForFullChunk ||
-      this->OnDataV2Assignee.maxRemainingBodyLength == 0
-    ) {
-      /// HELP me the better way to pass JSI ArrayBuffer here.
-      /// with faster buffer or anything
-
-      /// I have tested that,
-      /// when we captured the buffer by reference into the lambda,
-      /// in the middle of stream, it is often giving inaccuracy of
-      /// JS ArrayBuffer.byteLength in the `onDataV2` argument
-      /// when it's compared to the maxRemainingBodyLength differentiation that captured by value.
-      /// It's still accurate when it's finished.
-
-      /// While capturing the buffer by value is often accurate.
-      /// but is it slower?
-
-      if(this->OnDataV2Assignee.callback) {
-        this->OnDataV2Assignee.callback
-          ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
-                             [buffer = this->OnDataV2Assignee.buffer, maxRemainingBodyLength = this->OnDataV2Assignee.maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
-          auto mutableBuffer = CharsMutableBuffer(buffer);
-
-          cb.call(rt,
-                  facebook::jsi::ArrayBuffer(rt, std::make_shared<CharsMutableBuffer>(std::move(mutableBuffer))),
-                  facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
-        });
-      }
-
-      if(this->OnDataV2Assignee.callbackStr) {
-        this->OnDataV2Assignee.callbackStr
-          ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
-                             [buffer = this->OnDataV2Assignee.buffer, maxRemainingBodyLength = this->OnDataV2Assignee.maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
-          cb.call(rt,
-                  std::string(buffer->begin(), buffer->end()),
-                  facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
-        });
-      }
-    }
-  }
-
 //  void preEnd(facebook::jsi::Runtime &rt) const {
 //    if(this->OnAbortedAssignee.alreadyAborted) {
 //      /// Stated from uWebSockets
@@ -124,8 +67,8 @@ private:
 public:
   HttpResponseObject(facebook::jsi::Runtime &rt,
                      uWS::HttpResponse<false> *res,
-                     std::shared_ptr<facebook::react::CallInvoker> &jsInvoker,
-                     std::optional<HttpResponseObjectOptions> &&options = HttpResponseObjectOptions{ .disableBodyRead = false, .maxBodySize = 0 }) : facebook::jsi::Object(rt) {
+                     std::shared_ptr<facebook::react::CallInvoker> &jsInvoker
+                     /* std::optional<HttpResponseObjectOptions> &&options = HttpResponseObjectOptions{ .disableBodyRead = false, .maxBodySize = 0 } */) : facebook::jsi::Object(rt) {
 
     this->setProperty(rt,
                       "close",
@@ -377,7 +320,6 @@ public:
         this->OnDataV2Assignee.callback
           ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
                              [this](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
-//          auto stringMutableBuffer = facebook::jsi::StringMutableBuffer(&this->OnDataV2Assignee.chunk);
           auto mutableBuffer = CharsMutableBuffer(this->OnDataV2Assignee.buffer.get());
           cb.call(rt,
                   facebook::jsi::ArrayBuffer(rt, std::make_shared<CharsMutableBuffer>(std::move(mutableBuffer))));
@@ -558,65 +500,83 @@ public:
       return {rt_1, thisValue};
     }));
 
-    /// We have to make JS call asynchronously because the uWebSockets app run at different thread.
-    /// See the `uws_react_native::AppRunner`, and `facebook::react::AsyncCallback`.
-    /// So this predefined `onAborted` assignment below is to tell that
-    /// uWebSockets has to wait until JS call finished with the `res.end() or res.tryEnd()`.
-    ///
-    /// Stated from uWebSockets
-    /// `Returning from a request handler without responding or attaching an onAborted handler is ill-use`
-    ///
-    /// I thought `onAborted` is just a callback or event listener.
-    res->onAborted([this]() {
-      this->OnAbortedAssignee.alreadyAborted = true;
-
-      if(this->OnAbortedAssignee.callback) {
-        this->OnAbortedAssignee.callback->call(facebook::jsi::Value::undefined());
-      }
-    });
-
-    /// Sadly, we can't do late assignment to the onDataV2 and onData.
-    /// uWebSockets will do nothing to our handler if we assign the lambda so late.
-    /// So we have to predefined onDataV2 handler here, and save the chunk.
-    if(!options->disableBodyRead) {
-      res->onDataV2([this, maxBodySize = options->maxBodySize](auto chunk, auto maxRemainingBodyLength) {
-        if(this->OnDataV2Assignee.isStopCollecting) {
-          return;
-        }
-
-        if(maxBodySize > 0) {
-          auto chunkSize = chunk.size();
-          auto currentChunkSize = this->OnDataV2Assignee.buffer ? this->OnDataV2Assignee.buffer->size() : 0;
-
-          /// First and possibly only chunk
-          if(currentChunkSize == 0 && chunkSize > maxBodySize) {
-            this->OnDataV2Assignee.isStopCollecting = true;
-            /// set the first chunk
-            this->setChunk(chunk, maxRemainingBodyLength);
-            this->invokeOnDataHandler();
-            return;
-          }
-
-          /// subsequent chunks overflow
-          if(currentChunkSize > 0 && chunkSize > maxBodySize - currentChunkSize) {
-            /// tell to JS that we already stop collecting chunk
-            /// and invoke the JSI onData / onDataText / onDataV2 / onFullData / onFullDataText handler immediately
-            this->OnDataV2Assignee.isStopCollecting = true;
-            this->invokeOnDataHandler();
-            return;
-          }
-        }
-
-        this->setChunk(chunk, maxRemainingBodyLength);
-        this->invokeOnDataHandler();
-
-        /// About the invokeOnDataHandler,
-        /// JS call may late
-        /// it will invokes the handler once when user pass the handler.
-      });
-    }
-
   } // HttpResponseObject
+
+  void invokeOnAbortedHandler() {
+    this->OnAbortedAssignee.alreadyAborted = true;
+
+    if(this->OnAbortedAssignee.callback) {
+      this->OnAbortedAssignee.callback->call(facebook::jsi::Value::undefined());
+    }
+  }
+
+  bool isStopCollectingData() const {
+    return this->OnDataV2Assignee.isStopCollecting;
+  }
+
+  void stopCollectingData() {
+    this->OnDataV2Assignee.isStopCollecting = true;
+  }
+
+  void updateBuffer(std::string_view chunk,
+                    unsigned long maxRemainingBodyLength) {
+    if(!this->OnDataV2Assignee.buffer) {
+      this->OnDataV2Assignee.buffer = std::make_shared<std::vector<char>>();
+      this->OnDataV2Assignee.buffer->reserve(maxRemainingBodyLength + chunk.size()); // preallocate with hint
+    }
+    this->OnDataV2Assignee.buffer->insert(this->OnDataV2Assignee.buffer->end(), chunk.begin(), chunk.end());
+    this->OnDataV2Assignee.maxRemainingBodyLength = maxRemainingBodyLength;
+  }
+
+  size_t getBufferSize() const {
+    return this->OnDataV2Assignee.buffer->size();
+  }
+
+  /**
+   * Probably bad name,
+   * it's used either for "onData", "onDataV2", or "onFullData", and combined for "onFullDataText"
+   */
+  void invokeOnDataHandler() {
+    if(
+      !this->OnDataV2Assignee.isCallbackForFullChunk ||
+      this->OnDataV2Assignee.maxRemainingBodyLength == 0
+    ) {
+      /// HELP me the better way to pass JSI ArrayBuffer here.
+      /// with faster buffer or anything
+
+      /// I have tested that,
+      /// when we captured the buffer by reference into the lambda,
+      /// in the middle of stream, it is often giving inaccuracy of
+      /// JS ArrayBuffer.byteLength in the `onDataV2` argument
+      /// when it's compared to the maxRemainingBodyLength differentiation that captured by value.
+      /// It's still accurate when it's finished.
+
+      /// While capturing the buffer by value is often accurate.
+      /// but is it slower?
+
+      if(this->OnDataV2Assignee.callback) {
+        this->OnDataV2Assignee.callback
+          ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
+                             [buffer = this->OnDataV2Assignee.buffer, maxRemainingBodyLength = this->OnDataV2Assignee.maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
+          auto mutableBuffer = CharsMutableBuffer(buffer);
+
+          cb.call(rt,
+                  facebook::jsi::ArrayBuffer(rt, std::make_shared<CharsMutableBuffer>(std::move(mutableBuffer))),
+                  facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
+        });
+      }
+
+      if(this->OnDataV2Assignee.callbackStr) {
+        this->OnDataV2Assignee.callbackStr
+          ->callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority,
+                             [buffer = this->OnDataV2Assignee.buffer, maxRemainingBodyLength = this->OnDataV2Assignee.maxRemainingBodyLength](facebook::jsi::Runtime &rt, facebook::jsi::Function &cb) {
+          cb.call(rt,
+                  std::string(buffer->begin(), buffer->end()),
+                  facebook::jsi::BigInt::fromUint64(rt, maxRemainingBodyLength));
+        });
+      }
+    }
+  }
 
 };
 

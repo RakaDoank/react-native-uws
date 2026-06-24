@@ -93,8 +93,7 @@ private:
     std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [disableBodyRead, maxBodySize, &rt, &jsInvoker, asyncCallback = facebook::react::AsyncCallback(rt, std::move(callback), jsInvoker)](uWS::HttpResponse<false> *res, uWS::HttpRequest *req) {
       auto httpResponseObject = std::make_shared<HttpResponseObject>(rt,
                                                                      res,
-                                                                     jsInvoker,
-                                                                     HttpResponseObjectOptions{ .disableBodyRead = disableBodyRead, .maxBodySize = maxBodySize });
+                                                                     jsInvoker);
 
       auto httpRequestObject = std::make_shared<HttpRequestObject>(rt, req);
 
@@ -103,6 +102,62 @@ private:
                 *httpResponseObject,
                 *httpRequestObject);
       });
+
+      /// We have to make JS call asynchronously because the uWebSockets app run at different thread.
+      /// See the `react_native_uws::AppRunner`, and `facebook::react::AsyncCallback`.
+      /// So this predefined `onAborted` assignment below is to tell that
+      /// uWebSockets has to wait until JS call finished with the `res.end() or res.tryEnd()`.
+      ///
+      /// Stated from uWebSockets
+      /// `Returning from a request handler without responding or attaching an onAborted handler is ill-use`
+      ///
+      /// I thought `onAborted` is just a callback or event listener.
+      res->onAborted([httpResponseObject]() {
+        httpResponseObject->invokeOnAbortedHandler();
+      });
+
+      /// Sadly, we can't do late assignment to the onDataV2 and onData.
+      /// uWebSockets will do nothing to our handler if we assign the lambda so late.
+      /// So we have to predefined onDataV2 handler here, and save the chunk.
+      if(!disableBodyRead) {
+        res->onDataV2([httpResponseObject, maxBodySize](auto chunk, auto maxRemainingBodyLength) {
+          if(httpResponseObject->isStopCollectingData()) {
+            return;
+          }
+
+          if(maxBodySize > 0) {
+            auto chunkSize = chunk.size();
+            auto currentChunkSize = httpResponseObject->getBufferSize();
+
+            /// First and possibly only chunk
+            if(currentChunkSize == 0 && chunkSize > maxBodySize) {
+              httpResponseObject->stopCollectingData();
+              /// set the first chunk
+              httpResponseObject->updateBuffer(chunk, maxRemainingBodyLength);
+              httpResponseObject->invokeOnDataHandler();
+              /// Don't worry,
+              /// JS call may late
+              /// it will invokes the handler once when user pass the handler.
+              return;
+            }
+
+            /// subsequent chunks overflow
+            if(currentChunkSize > 0 && chunkSize > maxBodySize - currentChunkSize) {
+              /// tell to JS that we already stop collecting chunk
+              /// and invoke the JSI onData / onDataText / onDataV2 / onFullData / onFullDataText handler immediately
+              httpResponseObject->stopCollectingData();
+              httpResponseObject->invokeOnDataHandler();
+              /// Don't worry,
+              /// JS call may late
+              /// it will invokes the handler once when user pass the handler.
+              return;
+            }
+          }
+
+          httpResponseObject->updateBuffer(chunk, maxRemainingBodyLength);
+          httpResponseObject->invokeOnDataHandler();
+        });
+      }
     };
 
     if(method == UwsRouteMethod::ANY) {
