@@ -68,11 +68,15 @@ facebook::jsi::Object UwsReactNativeModule::getParts(facebook::jsi::Runtime &rt,
   /// See /uws-react-native/package/src/modules/getParts.ts
 
   if(!body.isArrayBuffer(rt)) {
-    /// undefined
-    return facebook::jsi::Object(rt);
+    throw facebook::jsi::JSError(rt, "First argument of `getParts` has to be an ArrayBuffer");
   }
 
   auto arrayBuffer = body.getArrayBuffer(rt);
+
+  if(arrayBuffer.size(rt) == 0) {
+    // undefined
+    return facebook::jsi::Object(rt);
+  }
 
   auto mp = uWS::MultipartParser(contentType.utf8(rt));
   if(mp.isValid()) {
