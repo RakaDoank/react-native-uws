@@ -199,7 +199,7 @@ export interface HttpResponse {
 	 */
 	onFullData(
 		handler: (
-			chunk: ArrayBuffer,
+			body: ArrayBuffer,
 		) => void,
 	) : void,
 
@@ -211,7 +211,7 @@ export interface HttpResponse {
 	 */
 	onFullDataText(
 		handler: (
-			chunk: string,
+			body: string,
 		) => void,
 	) : void,
 
