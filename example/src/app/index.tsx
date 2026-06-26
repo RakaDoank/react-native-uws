@@ -166,6 +166,8 @@ export default function Page() {
 					try {
 						const json = JSON.parse(text) as unknown
 
+						console.log("json", json)
+
 						if(!isAborted) {
 							// send it back in JSON
 							res.writeHeader("content-type", "application/json")
@@ -187,9 +189,9 @@ export default function Page() {
 			})
 
 			if(!isAborted) {
-				res.onFullDataText(chunk => {
+				res.onFullDataText(body => {
 					try {
-						const json = JSON.parse(chunk) as unknown
+						const json = JSON.parse(body) as unknown
 
 						if(!isAborted) {
 							// send it back in JSON
@@ -208,56 +210,64 @@ export default function Page() {
 		app.post("/get-form-data", (res, req) => {
 			const requestContentType = req.getHeader("content-type")
 
-			res.onFullData(chunk => {
-				res.writeHeader("content-type", "application/json")
+			console.log("/get-form-data requestContentType", requestContentType)
+			if(requestContentType.startsWith("multipart/form-data")) {
+				res.onFullData(body => {
+					res.writeHeader("content-type", "application/json")
+					console.log("/get-form-data fulldata", body.byteLength, requestContentType)
 
-				try {
-					// not a multipart form data
-					if(!requestContentType.startsWith("multipart/form-data")) {
-						throw new Error();
-					}
+					try {
+						const multipartField = uWS.getParts(body, requestContentType)
 
-					const multipartField = uWS.getParts(chunk, requestContentType);
+						if(multipartField?.length) {
+							const textDecoder = new TextDecoder("utf-8")
+							const text1Part = multipartField.find(p => p.name == "text1")
 
-					if(multipartField?.length) {
-						const textDecoder = new TextDecoder("utf-8")
-						const text1Part = multipartField.find(p => p.name == "text1")
+							let text1 = ""
 
-						let text1 = ""
+							if(text1Part) {
+								text1 = textDecoder.decode(text1Part.data)
+							}
 
-						if(text1Part) {
-							text1 = textDecoder.decode(text1Part.data)
+							res.end(
+								JSON.stringify({
+									fields: multipartField.map(field => {
+										return {
+											_byteLength: field.data.byteLength,
+											name: field.name,
+											filename: field.filename,
+											type: field.type,
+										}
+									}),
+									decodedFields: {
+										text1,
+									},
+									success: true,
+								}),
+							)
+						} else {
+							throw new Error()
 						}
-
+					} catch(err) {
+						console.log("/get-form-data error", err instanceof Error ? err.message : err)
 						res.end(
 							JSON.stringify({
-								fields: multipartField.map(field => {
-									return {
-										_byteLength: field.data.byteLength,
-										name: field.name,
-										filename: field.filename,
-										type: field.type,
-									}
-								}),
-								decodedFields: {
-									text1,
-								},
-								success: true,
+								data: null,
+								success: false,
 							}),
 						)
-					} else {
-						throw new Error()
 					}
-				} catch {
-					res.writeHeader("content-type", "application/json")
-					res.end(
-						JSON.stringify({
-							data: null,
-							success: false,
-						}),
-					)
-				}
-			})
+				})
+			} else {
+				res.writeHeader("content-type", "application/json")
+				res.end(
+					JSON.stringify({
+						data: null,
+						success: false,
+						message: "Header content-type is not multipart/form-data",
+					}),
+				)
+			}
 		})
 
 		// iOS will fail to listen/run the server without explicit host 127.0.0.1

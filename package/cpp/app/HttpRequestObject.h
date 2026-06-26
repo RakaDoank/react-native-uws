@@ -1,24 +1,18 @@
 #pragma once
 
-#include <ReactCommon/CallInvoker.h>
-#include <algorithm>
-#include <cmath>
 #include <jsi/jsi.h>
+#include <memory>
 #include "RecognizedString.h"
 #include "uWebSockets/HttpContextData.h"
 
 namespace uws_react_native {
 
+/// Only use this in JavaScript thread
 class HttpRequestObject : public facebook::jsi::Object {
 
 public:
   HttpRequestObject(facebook::jsi::Runtime &rt,
-                    uWS::HttpRequest *pReq) : facebook::jsi::Object(rt) {
-
-    /// Without shared pointer
-    /// uWS::HttpRequest returns weird behaviour for some methods like
-    /// getHeader, getUrl, and getParameter
-    auto req = std::make_shared<uWS::HttpRequest>(*pReq);
+                    const std::shared_ptr<uWS::HttpRequest> &req) : facebook::jsi::Object(rt) {
 
     this->setProperty(rt,
                       "forEach",
@@ -135,7 +129,7 @@ public:
       }
 
       return facebook::jsi::String::createFromAscii(rt_1,
-                                                   std::string(query));
+                                                    std::string(query));
     }));
 
     this->setProperty(rt,
@@ -164,10 +158,8 @@ public:
       return {rt_1, thisValue};
     }));
 
-    req.reset();
+  } // HttpResponseObject
 
-  } // HttpRequestObject
+}; // HttpRequestObject
 
-};
-
-}
+} // namespace uws_react_native

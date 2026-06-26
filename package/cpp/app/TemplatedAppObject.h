@@ -10,6 +10,7 @@
 #include "AppRunner.h"
 #include "HttpRequestObject.h"
 #include "HttpResponseObject.h"
+#include "HttpResponseObjectProvider.h"
 #include "RecognizedString.h"
 #include "uWebSockets/App.h"
 
@@ -90,17 +91,20 @@ private:
       }
     }
 
-    std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [disableBodyRead, maxBodySize, &rt, &jsInvoker, asyncCallback = facebook::react::AsyncCallback(rt, std::move(callback), jsInvoker)](uWS::HttpResponse<false> *res, uWS::HttpRequest *req) {
-      auto httpResponseObject = std::make_shared<HttpResponseObject>(rt,
-                                                                     res,
-                                                                     jsInvoker);
+    std::function<void (uWS::HttpResponse<false> *res, uWS::HttpRequest *req)> uwsRouteHandler = [&jsInvoker, disableBodyRead, maxBodySize, asyncCallback = facebook::react::AsyncCallback(rt, std::move(callback), jsInvoker)](uWS::HttpResponse<false> *res, uWS::HttpRequest *req) {
+//      auto httpResponseObject = std::make_shared<HttpResponseObject>(rt,
+//                                                                     res,
+//                                                                     jsInvoker);
+//
+//      auto httpRequestObject = std::make_shared<HttpRequestObject>(rt, req);
 
-      auto httpRequestObject = std::make_shared<HttpRequestObject>(rt, req);
+      auto httpResponseObjectProvider = std::make_shared<HttpResponseObjectProvider>(res);
+      auto sharedRequest = std::make_shared<uWS::HttpRequest>(*req);
 
-      asyncCallback.callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority, [httpResponseObject, httpRequestObject](facebook::jsi::Runtime &rt_1, facebook::jsi::Function &cb) {
+      asyncCallback.callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority, [httpResponseObjectProvider, &sharedRequest, &jsInvoker](facebook::jsi::Runtime &rt_1, facebook::jsi::Function &cb) {
         cb.call(rt_1,
-                *httpResponseObject,
-                *httpRequestObject);
+                HttpResponseObject(rt_1, httpResponseObjectProvider, jsInvoker),
+                HttpRequestObject(rt_1, sharedRequest));
       });
 
       /// We have to make JS call asynchronously because the uWebSockets app run at different thread.
@@ -112,29 +116,31 @@ private:
       /// `Returning from a request handler without responding or attaching an onAborted handler is ill-use`
       ///
       /// I thought `onAborted` is just a callback or event listener.
-      res->onAborted([httpResponseObject]() {
-        httpResponseObject->invokeOnAbortedHandler();
+      res->onAborted([httpResponseObjectProvider]() {
+        if(httpResponseObjectProvider->dataAbort.callback) {
+          httpResponseObjectProvider->dataAbort.callback->call(facebook::jsi::Value::undefined());
+        }
       });
 
       /// Sadly, we can't do late assignment to the onDataV2 and onData.
       /// uWebSockets will do nothing to our handler if we assign the lambda so late.
       /// So we have to predefined onDataV2 handler here, and save the chunk.
       if(!disableBodyRead) {
-        res->onDataV2([httpResponseObject, maxBodySize](auto chunk, auto maxRemainingBodyLength) {
-          if(httpResponseObject->isStopCollectingData()) {
+        res->onDataV2([httpResponseObjectProvider, maxBodySize](auto chunk, auto maxRemainingBodyLength) {
+          if(httpResponseObjectProvider->dataBody.isStopCollecting) {
             return;
           }
 
           if(maxBodySize > 0) {
             auto chunkSize = chunk.size();
-            auto currentChunkSize = httpResponseObject->getBufferSize();
+            auto currentChunkSize = httpResponseObjectProvider->dataBody.buffer->size();
 
             /// First and possibly only chunk
             if(currentChunkSize == 0 && chunkSize > maxBodySize) {
-              httpResponseObject->stopCollectingData();
+              httpResponseObjectProvider->dataBody.isStopCollecting = true;
               /// set the first chunk
-              httpResponseObject->updateBuffer(chunk, maxRemainingBodyLength);
-              httpResponseObject->invokeOnDataHandler();
+              httpResponseObjectProvider->insertBodyBuffer(chunk, maxRemainingBodyLength);
+              httpResponseObjectProvider->invokeBodyCallback();
               /// Don't worry,
               /// JS call may late
               /// it will invokes the handler once when user pass the handler.
@@ -145,8 +151,8 @@ private:
             if(currentChunkSize > 0 && chunkSize > maxBodySize - currentChunkSize) {
               /// tell to JS that we already stop collecting chunk
               /// and invoke the JSI onData / onDataText / onDataV2 / onFullData / onFullDataText handler immediately
-              httpResponseObject->stopCollectingData();
-              httpResponseObject->invokeOnDataHandler();
+              httpResponseObjectProvider->dataBody.isStopCollecting = true;
+              httpResponseObjectProvider->invokeBodyCallback();
               /// Don't worry,
               /// JS call may late
               /// it will invokes the handler once when user pass the handler.
@@ -154,8 +160,8 @@ private:
             }
           }
 
-          httpResponseObject->updateBuffer(chunk, maxRemainingBodyLength);
-          httpResponseObject->invokeOnDataHandler();
+          httpResponseObjectProvider->insertBodyBuffer(chunk, maxRemainingBodyLength);
+          httpResponseObjectProvider->invokeBodyCallback();
         });
       }
     };
@@ -246,10 +252,11 @@ public:
       auto callback = arguments[0].asObject(rt_1).asFunction(rt_1);
 
       appRunner.app.filter([&jsInvoker, asyncCallback = facebook::react::AsyncCallback(rt_1, std::move(callback), jsInvoker)](auto *res, int count) {
-        asyncCallback.call([&jsInvoker, &res, count](facebook::jsi::Runtime &rt_2, facebook::jsi::Function &cb) {
-          auto httpResponseObject = std::make_shared<uws_react_native::HttpResponseObject>(rt_2, res, jsInvoker);
+        auto httpResponseObjectProvider = std::make_shared<HttpResponseObjectProvider>(res);
+
+        asyncCallback.call([&jsInvoker, count, httpResponseObjectProvider](facebook::jsi::Runtime &rt_2, facebook::jsi::Function &cb) {
           cb.call(rt_2,
-                  *httpResponseObject,
+                  HttpResponseObject(rt_2, httpResponseObjectProvider, jsInvoker),
                   count);
         });
       });

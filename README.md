@@ -61,21 +61,15 @@ uws-react-native is still in heavy development and research. All the uWebSockets
 
 There are development and research things that you can read for your informations, especially if you are already familiar with uWebSockets. The most things are because of the React Native's architecture differentiation compared to the casual uWebSockets server program.
 
-### Performance & Stability
-
-This library is indeed focusing on performance, but we will focus more of it later until we reach the stability of uws-react-native due to [threading](#threading) issue. It does not mean uws-react-native will performs badly in terms of speed, but it is not stable enough in under a stress situation because we run uWebSockets only in one thread.
-
-I have tested a stress test in an Android device. A lot of incoming request roughly 100 requests per second in roughly 5 seconds for files uploading (multipart/form-data) may crash the app. We do not have the proper benchmark yet, but it is as we expected from one thread only. I am keeping my eyes on this issue to keep improving the performance.
-
 ### Threading
 
 We are embracing the main chaos of supporting uWebSockets in React Native architecture, which is to prevent UI/Main thread from blocking.
 
-Intentionally, we make the uWebSockets runs in another thread, therefore we have to make sure the communication safety between uWebSockets runner thread to the JS thread and vice versa. In theory, we can make uWebSockets runs in the main thread, but the app will be unusable, and then force closing the app is the only way to stop the server.
+Intentionally, we make the uWebSockets will runs in another thread, therefore we have to make sure the communication safety between uWebSockets runner thread to the JS thread and vice versa. In theory, we can make uWebSockets runs in the main thread, but the app will be unusable, and then force closing the app is the only way to stop the server.
 
 Yet, we only use one dedicated thread per uWebSockets run. I am in my own research to improve this by maximizing it to the hardware concurrency limit, but also to be careful about JavaScript runtime, because we have no control of it.
 
-We have another issue because of the uWebSockets runs in another thread. From the JSI C++ side, we have to assume any JS function as a callback especially the route method handler is asynchronous. We cannot make a sync call to the JS function from an arbitrary thread to the JS thread, and it makes JS call to the uWebSockets runner is also late.
+We have another issue because of the uWebSockets runs in another thread. From the JSI C++ side, we have to assume any JavaScript functions as a callback especially the route method handler are asynchronous. We cannot make a sync call to the JavaScript function from an arbitrary thread to the JavaScript thread, and due to the asynchronous call, it makes the JavaScript call to the uWebSockets instances is late.
 
 There some topics you may to read regarding this threading research
 
