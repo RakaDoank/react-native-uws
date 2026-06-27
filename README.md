@@ -9,6 +9,10 @@ The port of [**uWebSockets**](https://github.com/uNetworking/uWebSockets) librar
 
 ## Installation
 
+We provide two registry homes where this library lives which can be used for your project. You can use either it's from NPM registry or GitHub Packages
+
+### From NPM Registry
+
 npm
 ```
 npm install uws-react-native
@@ -23,6 +27,31 @@ pnpm
 ```
 pnpm install uws-react-native
 ```
+
+### From GitHub Packages
+
+In the same directory as your `package.json` file, create or edit an `.npmrc` file with this snippet
+```
+@rakadoank:registry=https://npm.pkg.github.com
+```
+
+After that, do the regular installation with the CLI, but with the scope name
+
+npm
+```
+npm install @rakadoank/uws-react-native
+```
+
+yarn
+```
+yarn add @rakadoank/uws-react-native
+```
+
+pnpm
+```
+pnpm install @rakadoank/uws-react-native
+```
+
 
 ## Usage
 
