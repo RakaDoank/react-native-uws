@@ -30,12 +30,22 @@ pnpm install uws-react-native
 
 ### From GitHub Packages
 
-In the same directory as your `package.json` file, create or edit an `.npmrc` file with this snippet
+First, create your GitHub personal token (classic) with `read:packages` access
+> **Skip if you already have it**
+1. In the upper-right corner of any page on GitHub, click your profile picture, then click Settings
+2. In the left sidebar, click **<> Developer settings**
+3. In the left sidebar, under **🔑 Personal access tokens**, click **Tokens (classic)**
+4. Select Generate new token, then click **Generate new token (classic)**
+5. Fill your descriptive note, fill / check the `read:packages` access, and click **Generate token**
+6. Copy the generated token, or save it to somewhere else
+
+After that, in the same directory as your `package.json` file, create or edit an `.npmrc` file with this snippet
 ```
 @rakadoank:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PERSONAL_TOKEN
 ```
 
-After that, do the regular installation with the CLI, but with the scope name
+Finally, do the regular installation with the CLI, but with the scope name
 
 npm
 ```
