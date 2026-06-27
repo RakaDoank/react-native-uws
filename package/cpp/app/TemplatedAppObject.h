@@ -102,9 +102,11 @@ private:
       auto sharedRequest = std::make_shared<uWS::HttpRequest>(*req);
 
       asyncCallback.callWithPriority(facebook::react::SchedulerPriority::ImmediatePriority, [httpResponseObjectProvider, sharedRequest, &jsInvoker](facebook::jsi::Runtime &rt_1, facebook::jsi::Function &cb) {
-        cb.call(rt_1,
-                HttpResponseObject(rt_1, httpResponseObjectProvider, jsInvoker),
-                HttpRequestObject(rt_1, sharedRequest));
+        if(httpResponseObjectProvider && sharedRequest) {
+          cb.call(rt_1,
+                  HttpResponseObject(rt_1, httpResponseObjectProvider, jsInvoker),
+                  HttpRequestObject(rt_1, sharedRequest));
+        }
       });
 
       /// We have to make JS call asynchronously because the uWebSockets app run at different thread.
