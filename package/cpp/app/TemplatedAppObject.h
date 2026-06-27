@@ -2,11 +2,7 @@
 
 #include <ReactCommon/CallInvoker.h>
 #include <ReactCommon/SchedulerPriority.h>
-#include <algorithm>
 #include <jsi/jsi.h>
-#include <mutex>
-#include <sstream>
-#include <utility>
 #include "AppRunner.h"
 #include "HttpRequestObject.h"
 #include "HttpResponseObject.h"
