@@ -35,6 +35,8 @@ jobs:
       - name: UWS Mod
         run: |
           npm run package-builder uws-mod
-      - name: Release to npm registry
+      - name: Release to NPM registry
+        run: |
+          node ./scripts/release-npm.mjs
         run: |
           node ./scripts/release.mjs
