@@ -20,7 +20,7 @@ Pod::Spec.new do |s|
   s.private_header_files  = "apple/**/*.h"
 
   # zlib
-  s.libraries    = "z"
+  s.libraries             = "z"
 
   s.pod_target_xcconfig = {
     # Fix IPV6_RECVPKTINFO undeclared for uSockets
@@ -30,12 +30,6 @@ Pod::Spec.new do |s|
   s.subspec "app" do |ss|
     ss.source_files         = "cpp/app/**/*.h"
     ss.project_header_files = "cpp/app/**/*.h"
-    ss.header_mappings_dir  = "cpp"
-  end
-
-  s.subspec "bridging" do |ss|
-    ss.source_files         = "cpp/bridging/**/*.h"
-    ss.project_header_files = "cpp/bridging/**/*.h"
     ss.header_mappings_dir  = "cpp"
   end
 
